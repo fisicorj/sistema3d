@@ -170,7 +170,7 @@ class BambuMonitor:
             with self._lock:
                 self._connected = True
                 self._error     = ""
-            print(f"✅ BambuMonitor conectado — {self._ip} serial={self._serial}")
+            print("[Bambu] Conectado: {} serial={}".format(self._ip, self._serial))
         else:
             with self._lock:
                 self._connected = False
@@ -180,7 +180,7 @@ class BambuMonitor:
         with self._lock:
             self._connected = False
         if rc != 0:
-            print(f"⚠️  BambuMonitor desconectado (rc={rc}), tentando em {self.RECONNECT_DELAY}s…")
+            print("[Bambu] Desconectado (rc={}), tentando em {}s...".format(rc, self.RECONNECT_DELAY))
 
     def _on_message(self, client, userdata, msg):
         try:
@@ -225,8 +225,8 @@ class BambuMonitor:
             return base
 
 
-# Instância global iniciada ao importar o módulo
-_bambu = BambuMonitor()
+# Instância global — inicializada em main() para evitar efeitos colaterais no import
+_bambu = None  # type: BambuMonitor
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -256,7 +256,7 @@ class Sistema3DHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/bambu-status":
-            self._send_json(_bambu.get_status())
+            self._send_json(_bambu.get_status() if _bambu else {"configured": False, "connected": False, "error": "servidor reiniciando"})
             return
 
         if path == "/":
@@ -288,6 +288,9 @@ class Sistema3DHandler(SimpleHTTPRequestHandler):
             data = self._read_json_body()
         except Exception as exc:
             self._send_json({"ok": False, "error": str(exc)}, 400)
+            return
+        if _bambu is None:
+            self._send_json({"ok": False, "error": "BambuMonitor não inicializado"}, 503)
             return
         ip          = str(data.get("ip", "")).strip()
         serial      = str(data.get("serial", "")).strip()
@@ -539,6 +542,8 @@ class Sistema3DHandler(SimpleHTTPRequestHandler):
 # ═══════════════════════════════════════════════════════════════════
 
 def main() -> None:
+    global _bambu
+
     parser = argparse.ArgumentParser(description="Servidor local do Sistema 3D")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
@@ -548,19 +553,32 @@ def main() -> None:
     DATA_DIR.mkdir(exist_ok=True)
     BACKUP_DIR.mkdir(exist_ok=True)
 
+    try:
+        _bambu = BambuMonitor()
+    except Exception as exc:
+        print("[Bambu] Monitor nao iniciado: {}".format(exc))
+        _bambu = None
+
     httpd = ThreadingHTTPServer((args.host, args.port), Sistema3DHandler)
-    url   = f"http://{args.host}:{args.port}"
-    print("🟢 3D Print Pro — servidor local")
-    print(f"🌐 Acesse: {url}")
-    print(f"💾 Banco SQLite: {DB_FILE}")
-    print(f"🛟 Backups automáticos: {BACKUP_DIR} (últimos 30)")
-    if MQTT_AVAILABLE and _bambu._ip:
-        print(f"🖨️  Bambu Lab MQTT: {_bambu._ip}:{BambuMonitor.MQTT_PORT} (serial {_bambu._serial})")
-    elif not MQTT_AVAILABLE:
-        print("⚠️  paho-mqtt não instalado — monitoramento Bambu desativado")
+    url = "http://{}:{}".format(args.host, args.port)
+    sep = "-" * 50
+    print(sep)
+    print("3D Print Pro - servidor local")
+    print("Acesse: " + url)
+    print("Banco: " + str(DB_FILE))
+    print("Backups: " + str(BACKUP_DIR) + " (max. 30)")
+    if not MQTT_AVAILABLE:
+        print("AVISO: paho-mqtt nao instalado - Bambu Lab desativado")
+        print("  Para ativar: pip install paho-mqtt")
+    elif _bambu and _bambu._ip:
+        print("Bambu Lab MQTT: {} serial={}".format(_bambu._ip, _bambu._serial))
+    else:
+        print("Bambu Lab: configure em Configuracoes > Bambu Lab")
     if args.host not in ("127.0.0.1", "localhost"):
-        print("⚠️  Atenção: host diferente de 127.0.0.1 expõe o sistema na rede local.")
+        print("AVISO: host diferente de 127.0.0.1 expoe o sistema na rede.")
+    print(sep)
     print("Pressione Ctrl+C para parar.")
+    print("")
     httpd.serve_forever()
 
 
