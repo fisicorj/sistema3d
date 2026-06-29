@@ -82,7 +82,8 @@ function switchTab(tabId, event) {
     if (tabId === 'settings' || tabId === 'melhor-envio-settings') {
         if (typeof loadMelhorEnvioConfig === 'function') loadMelhorEnvioConfig();
     }
-    if (tabId === 'expenses')  { if (typeof loadExpenses === 'function') loadExpenses(); }
+    if (tabId === 'expenses')    { if (typeof loadExpenses    === 'function') loadExpenses(); }
+    if (tabId === 'maintenance') { if (typeof loadMaintenance === 'function') loadMaintenance(); }
     if (tabId === 'dashboard') {
         updateDashboard();
         updateStatsBar();
@@ -258,6 +259,176 @@ function buildShareableHTML() {
         + '<p>Validade: ' + validity.toLocaleDateString('pt-BR') + ' · Gerado por 3D Print Pro</p>'
         + '</div></body></html>';
 }
+
+// ── Orçamento para o cliente (sem expor custos internos) ──────────────────────
+
+function buildClientQuoteHTML() {
+    const p = calculatePrice();
+    if (!p) return null;
+
+    const now = new Date();
+    const validity = new Date(now);
+    const validityDays = parseInt((typeof currentSettings !== 'undefined' && currentSettings.quoteValidityDays) || 15);
+    validity.setDate(validity.getDate() + (isNaN(validityDays) ? 15 : validityDays));
+
+    const brandName = (typeof currentSettings !== 'undefined' && currentSettings.brandName) || '3D Print Pro';
+    const itemDesc = (document.getElementById('calcItemDescription')?.value || '').trim();
+
+    var shipLabel = 'Frete';
+    if (p.shippingInfo) {
+        shipLabel = p.shippingInfo.source === 'melhor_envio'
+            ? 'Frete ' + p.shippingInfo.region + (p.shippingInfo.deliveryDays ? ' (' + p.shippingInfo.deliveryDays + ' dias úteis)' : '')
+            : 'Frete ' + p.shippingInfo.uf + '/' + p.shippingInfo.region + (p.shippingInfo.deliveryDays ? ' (' + p.shippingInfo.deliveryDays + ' dias úteis)' : '');
+    }
+
+    const fmt = function(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ','); };
+
+    var rows = '';
+    rows += '<div class="row"><span class="lbl">Quantidade</span><span class="val">' + p.quantity + 'x</span></div>';
+    rows += '<div class="row"><span class="lbl">Preço unitário</span><span class="val">' + fmt(p.finalPrice) + '</span></div>';
+    if (p.bulkDiscount > 0) {
+        rows += '<div class="row"><span class="lbl">Desconto por quantidade</span><span class="val disc">−' + (p.bulkDiscount * 100).toFixed(0) + '%</span></div>';
+    }
+    if (p.urgencyPct > 0) {
+        rows += '<div class="row"><span class="lbl">Entrega urgente</span><span class="val">+' + p.urgencyPct + '%</span></div>';
+    }
+    rows += '<div class="row"><span class="lbl">Subtotal</span><span class="val">' + fmt(p.totalPrice) + '</span></div>';
+    rows += '<div class="row"><span class="lbl">' + shipLabel + '</span><span class="val">' + fmt(p.shippingCost) + '</span></div>';
+    rows += '<div class="row total-row"><span class="lbl"><strong>Total</strong></span><span class="val"><strong>' + fmt(p.totalWithShipping) + '</strong></span></div>';
+
+    return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        + '<title>Orçamento — ' + brandName + '</title>'
+        + '<style>'
+        + '*{box-sizing:border-box;margin:0;padding:0}'
+        + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f4f0;color:#1a1a1a;padding:16px;max-width:480px;margin:0 auto}'
+        + '.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.07)}'
+        + '.brand{color:#00AE42;font-size:1.25em;font-weight:800;letter-spacing:-0.5px}'
+        + '.date{color:#888;font-size:.78em;margin-top:3px}'
+        + '.price-box{background:linear-gradient(135deg,#00AE42,#007a30);color:#fff;border-radius:16px;padding:22px;text-align:center;margin-bottom:14px;box-shadow:0 4px 16px rgba(0,174,66,.3)}'
+        + '.price-box .label{font-size:.82em;opacity:.9;letter-spacing:.5px;text-transform:uppercase}'
+        + '.price-box .value{font-size:2.4em;font-weight:900;letter-spacing:-2px;margin:6px 0}'
+        + '.price-box .sub{font-size:.8em;opacity:.85}'
+        + '.section{font-weight:700;font-size:.75em;text-transform:uppercase;color:#00AE42;padding:10px 0 6px;letter-spacing:.8px}'
+        + '.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f2f2f2;font-size:.9em}'
+        + '.row:last-child{border:none}'
+        + '.lbl{color:#555}'
+        + '.val{font-weight:600;color:#1a1a1a}'
+        + '.val.disc{color:#d97706}'
+        + '.total-row{padding-top:12px;margin-top:4px}'
+        + '.total-row .val strong{color:#00AE42;font-size:1.12em}'
+        + '.validity{text-align:center;font-size:.75em;color:#999;margin-top:4px;line-height:1.6}'
+        + '.pix-hint{background:#e8f5e9;border:1px solid #a8d5b5;border-radius:10px;padding:10px 14px;font-size:.82em;color:#1a5c2a;line-height:1.5}'
+        + '</style></head><body>'
+
+        + '<div class="card">'
+        + '<div class="brand">🖨️ ' + brandName + '</div>'
+        + '<div class="date">Orçamento gerado em ' + now.toLocaleString('pt-BR') + '</div>'
+        + '</div>'
+
+        + '<div class="price-box">'
+        + '<div class="label">💰 Total a pagar</div>'
+        + '<div class="value">' + fmt(p.totalWithShipping) + '</div>'
+        + '<div class="sub">' + p.quantity + (p.quantity > 1 ? ' peças' : ' peça') + ' · Frete incluído</div>'
+        + '</div>'
+
+        + (itemDesc ? '<div class="card"><div class="section">Item</div><div style="font-size:.93em;color:#1a1a1a;padding:4px 0;">' + itemDesc.replace(/</g,'&lt;') + '</div></div>' : '')
+        + '<div class="card">'
+        + '<div class="section">Resumo do pedido</div>'
+        + rows
+        + '</div>'
+
+        + '<div class="card">'
+        + '<div class="pix-hint">📅 <strong>Validade deste orçamento:</strong> ' + validity.toLocaleDateString('pt-BR') + '<br>'
+        + 'Para confirmar o pedido, entre em contato respondendo esta mensagem.</div>'
+        + '</div>'
+
+        + '<div class="validity">Gerado por ' + brandName + ' · Impressão 3D</div>'
+        + '</body></html>';
+}
+
+async function shareClientQuote() {
+    const html = buildClientQuoteHTML();
+    if (!html) return;
+    const now = new Date();
+    const filename = 'orcamento_cliente_' + now.toISOString().slice(0, 10) + '.html';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const file = new File([blob], filename, { type: 'text/html' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ files: [file], title: 'Orçamento', text: 'Segue o orçamento conforme solicitado.' });
+            return;
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+        }
+    }
+    // Fallback: download direto
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(a.href); }, 30000);
+    showToast('✅ Orçamento para cliente gerado! Envie pelo WhatsApp ou e-mail.');
+}
+
+function buildWhatsAppText() {
+    const p = calculatePrice();
+    if (!p) return null;
+
+    const brandName = (typeof currentSettings !== 'undefined' && currentSettings.brandName) || '';
+    const validityDays = parseInt((typeof currentSettings !== 'undefined' && currentSettings.quoteValidityDays) || 15);
+    const validity = new Date();
+    validity.setDate(validity.getDate() + (isNaN(validityDays) ? 15 : validityDays));
+    const validityStr = validity.toLocaleDateString('pt-BR');
+
+    const itemDesc = (document.getElementById('calcItemDescription')?.value || '').trim();
+    const fmt = function(v) { return 'R$ ' + Number(v).toFixed(2).replace('.', ','); };
+
+    const shipLabel = p.shippingInfo
+        ? ('Frete ' + (p.shippingInfo.region || p.shippingInfo.uf || ''))
+        : 'Frete';
+
+    var lines = [];
+    if (brandName) lines.push('🖨️ *' + brandName + '*');
+    lines.push('');
+    if (itemDesc) lines.push('📦 *' + itemDesc + '*');
+    lines.push('');
+    lines.push('Quantidade: *' + p.quantity + 'x*');
+    lines.push('Preço unitário: *' + fmt(p.finalPrice) + '*');
+    if (p.bulkDiscount > 0) lines.push('Desconto por quantidade: *−' + (p.bulkDiscount * 100).toFixed(0) + '%*');
+    if (p.urgencyPct > 0)   lines.push('Urgência: *+' + p.urgencyPct + '%*');
+    lines.push('Subtotal: ' + fmt(p.totalPrice));
+    lines.push(shipLabel + ': ' + fmt(p.shippingCost));
+    lines.push('');
+    lines.push('💰 *Total: ' + fmt(p.totalWithShipping) + '*');
+    lines.push('');
+    lines.push('_Válido até ' + validityStr + '. Responda para confirmar o pedido._');
+
+    return lines.join('\n');
+}
+
+async function copyWhatsAppQuote() {
+    const text = buildWhatsAppText();
+    if (!text) return;
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('✅ Mensagem copiada! Cole no WhatsApp.');
+    } catch (e) {
+        // fallback legado
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('✅ Mensagem copiada! Cole no WhatsApp.');
+    }
+}
+
+// ── Exportação interna (breakdown completo) ───────────────────────────────────
 
 function downloadShareableHTML(html) {
     if (!html) html = buildShareableHTML();

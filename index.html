@@ -35,6 +35,9 @@
             <button class="nav-item tab-btn" onclick="switchTab('orders', event)">
                 <span class="nav-icon">📦</span><span>Pedidos</span>
             </button>
+            <button class="nav-item tab-btn" onclick="switchTab('quotes', event)">
+                <span class="nav-icon">📋</span><span>Orçamentos</span>
+            </button>
 
             <div class="nav-label">Gestão</div>
             <button class="nav-item tab-btn" onclick="switchTab('clients', event)">
@@ -45,6 +48,9 @@
             </button>
             <button class="nav-item tab-btn" onclick="switchTab('printers', event)">
                 <span class="nav-icon">🖨️</span><span>Impressoras</span>
+            </button>
+            <button class="nav-item tab-btn" onclick="switchTab('maintenance', event)">
+                <span class="nav-icon">🔧</span><span>Manutenção</span>
             </button>
             <button class="nav-item tab-btn" onclick="switchTab('packaging', event)">
                 <span class="nav-icon">📦</span><span>Embalagens</span>
@@ -94,702 +100,52 @@
     <main class="main">
 
         <!-- ===== DASHBOARD ===== -->
-        <div id="dashboard" class="tab-panel active">
-            <div class="page-header">
-                <h1>📊 Dashboard</h1>
-                <p>Visão geral do seu negócio de impressão 3D</p>
-            </div>
-            <div class="panel-body">
-                <div id="monthlyGoalBar" style="display:none;" class="chart-container">
-                    <div class="chart-title">🎯 Meta Mensal</div>
-                    <div id="monthlyGoalContent"></div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">Faturamento por Tipo de Trabalho</div>
-                    <div class="bar-chart" id="salesByTypeChart"></div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">Evolução Mensal</div>
-                    <div class="bar-chart" id="monthlyChart"></div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">⚠️ Alertas e Recomendações</div>
-                    <div id="alertsList"></div>
-                </div>
-                <div class="chart-container" id="delayedOrdersPanel" style="display:none;">
-                    <div class="chart-title">🔔 Pedidos Atrasados</div>
-                    <div id="delayedOrdersList"></div>
-                </div>
-            </div>
-        </div>
+        <div id="dashboard" class="tab-panel active" data-partial="partials/dashboard.html"></div>
 
         <!-- ===== CALCULADORA ===== -->
-        <div id="calculator" class="tab-panel">
-            <div class="page-header">
-                <h1>🧮 Calculadora de Preço</h1>
-                <p>Calcule o preço a partir do custo/hora da impressora, material, mão de obra e margem</p>
-            </div>
-            <div class="calc-split">
-
-                <!-- ESQUERDA: formulário em sub-abas -->
-                <div class="calc-left">
-                    <div class="calc-tabs">
-                        <button class="calc-tab-btn active" onclick="switchCalcTab('projeto', this)">📝 Projeto</button>
-                        <button class="calc-tab-btn" onclick="switchCalcTab('custos', this)">⚡ Custos</button>
-                        <button class="calc-tab-btn" onclick="switchCalcTab('pos', this)">🔧 Pós-proc.</button>
-                        <button class="calc-tab-btn" onclick="switchCalcTab('venda', this)">📋 Venda</button>
-                    </div>
-
-                    <!-- Aba 1: Projeto -->
-                    <div id="calcTab-projeto" class="calc-tab-panel active">
-                        <div class="form-card">
-                            <h3>📝 Dados do Projeto</h3>
-
-                            <div id="gcodePanel" style="display:none;"></div>
-
-                            <div style="margin-bottom:15px;">
-                                <button id="gcodeImportBtn" class="btn-primary" onclick="importGcode()"
-                                        style="width:100%; font-size:0.9em;">
-                                    📂 Importar G-code (Bambu / Prusa / Cura / OrcaSlicer / .3mf)
-                                </button>
-                                <small style="display:block; margin-top:5px;">
-                                    Preenche peso, tempo e materiais AMS automaticamente
-                                </small>
-                            </div>
-
-                            <div class="input-group">
-                                <label>Cliente</label>
-                                <select id="calcClientId"><option value="0">Sem cliente</option></select>
-                            </div>
-                            <div class="input-group">
-                                <label>Tipo de Trabalho</label>
-                                <select id="calcWorkType">
-                                    <option value="simple">Brinde Simples</option>
-                                    <option value="personalized" selected>Brinde Personalizado</option>
-                                    <option value="technical">Peça Técnica</option>
-                                    <option value="custom">Projeto Sob Medida</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>Impressora</label>
-                                <select id="calcPrinter"></select>
-                            </div>
-                            <div class="input-group">
-                                <label>Material</label>
-                                <select id="calcMaterial"></select>
-                            </div>
-                            <div class="input-group">
-                                <label>Peso da Peça</label>
-                                <input type="text" id="calcWeight" value="120g" placeholder="Ex.: 125g ou 0,25kg">
-                                <small>Aceita 125g, 0,25kg ou apenas 125.</small>
-                            </div>
-                            <div class="input-group">
-                                <label>Tempo de Impressão</label>
-                                <input type="text" id="calcPrintTime" value="8h" placeholder="Ex.: 15m, 1h30m ou 01:30">
-                                <small>Aceita 15m, 1h30m, 2h15m, 01:30 ou horas decimais.</small>
-                            </div>
-                            <div class="input-group">
-                                <label>Nível de Dificuldade</label>
-                                <select id="calcDifficulty">
-                                    <option value="1">Simples</option>
-                                    <option value="1.2" selected>Médio</option>
-                                    <option value="1.5">Difícil</option>
-                                    <option value="2.0">Muito Difícil</option>
-                                </select>
-                            </div>
-                            <div class="input-group">
-                                <label>Quantidade</label>
-                                <input type="number" id="calcQuantity" value="1" min="1" step="1">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Aba 2: Custos Adicionais -->
-                    <div id="calcTab-custos" class="calc-tab-panel">
-                        <div class="form-card">
-                            <h3>📦 Embalagem</h3>
-                            <div class="input-group">
-                                <label>Tipo de embalagem</label>
-                                <select id="calcPackaging" onchange="updatePriceCalculation()"></select>
-                                <small>O peso da embalagem é somado ao frete automaticamente</small>
-                            </div>
-                        </div>
-
-                        <div class="form-card" style="margin-top:12px;">
-                            <h3>⭐ Adicionais
-                                <span style="font-size:0.72em;color:var(--text-muted);font-weight:400;">custo total: R$ <span id="addonsTotalDisplay">0.00</span></span>
-                            </h3>
-                            <div id="addonsChecklist">
-                                <p style="color:var(--text-muted);font-size:0.83em;">Carregando adicionais...</p>
-                            </div>
-                        </div>
-
-                        <div class="form-card" style="margin-top:12px;">
-                            <h3>⚡ Taxas &amp; Descontos</h3>
-                            <div class="input-group">
-                                <label>Taxa de Personalização (R$)</label>
-                                <input type="number" id="calcCustomFee" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Modelagem / Design (R$)</label>
-                                <input type="number" id="calcDesignFee" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Acabamento Especial (R$)</label>
-                                <input type="number" id="calcFinishFee" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Desconto por Lote (%)</label>
-                                <input type="number" id="calcBulkDiscount" value="0" min="0" max="50" step="5">
-                                <small>Automático: ≥5 peças → 5%, ≥10 peças → 10%</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Aba 3: Pós-processamento -->
-                    <div id="calcTab-pos" class="calc-tab-panel">
-                        <div class="form-card">
-                            <h3>🔧 Pós-processamento</h3>
-                            <div class="input-group">
-                                <label>Preparação / Setup (min)</label>
-                                <input type="number" id="calcSetupTime" value="15" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Remoção de suporte (min)</label>
-                                <input type="number" id="calcSupportTime" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Lixamento (min)</label>
-                                <input type="number" id="calcSandingTime" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Pintura / acabamento (min)</label>
-                                <input type="number" id="calcPaintingTime" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Montagem / encaixe (min)</label>
-                                <input type="number" id="calcAssemblyTime" value="0" min="0">
-                            </div>
-                            <div class="input-group">
-                                <label>Atendimento ao cliente (min)</label>
-                                <input type="number" id="calcServiceTime" value="0" min="0">
-                            </div>
-                            <div class="info-box" style="margin-top:5px;">
-                                Mão de obra total: <strong id="totalLaborTime">15 min</strong>
-                                — R$ <strong id="totalLaborCostInfo">—</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Aba 4: Venda & Fiscal -->
-                    <div id="calcTab-venda" class="calc-tab-panel">
-                        <div class="form-card">
-                            <h3>📋 Venda &amp; Fiscal</h3>
-                            <div class="input-group">
-                                <label>Canal de venda</label>
-                                <select id="calcSalesChannel" onchange="onSalesChannelChange()">
-                                    <option value="direct">Direto — Pix / WhatsApp (0%)</option>
-                                    <option value="elo7">Elo7 (15%)</option>
-                                    <option value="ml">Mercado Livre (16%)</option>
-                                    <option value="shopee">Shopee (14%)</option>
-                                    <option value="custom">Outra plataforma</option>
-                                </select>
-                            </div>
-                            <div class="input-group" id="customPlatformFeeGroup" style="display:none;">
-                                <label>Taxa da plataforma (%)</label>
-                                <input type="number" id="calcPlatformFee" value="15" min="0" max="50" step="0.5"
-                                       oninput="updatePriceCalculation()">
-                            </div>
-                            <div class="input-group">
-                                <label>CEP de destino para frete</label>
-                                <div style="display:flex;gap:8px;align-items:center;">
-                                    <input type="text" id="calcDestCep" placeholder="Ex.: 01001-000" maxlength="9"
-                                           onblur="lookupCep(); invalidateMelhorEnvioQuote();" oninput="invalidateMelhorEnvioQuote()" style="flex:1;">
-                                    <button type="button" class="btn-primary" onclick="lookupCep(); quoteMelhorEnvioFromCalculator();">Cotar</button>
-                                </div>
-                                <input type="hidden" id="calcDestUf">
-                                <small id="calcCepStatus">Sem CEP: usa a tabela padrão por peso.</small>
-                            </div>
-                            <div class="input-group">
-                                <label>Caixa para cotação Melhor Envio (cm)</label>
-                                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-                                    <input type="number" id="calcBoxLength" value="15" min="1" step="1" placeholder="Compr." oninput="invalidateMelhorEnvioQuote()">
-                                    <input type="number" id="calcBoxWidth" value="10" min="1" step="1" placeholder="Larg." oninput="invalidateMelhorEnvioQuote()">
-                                    <input type="number" id="calcBoxHeight" value="5" min="1" step="1" placeholder="Alt." oninput="invalidateMelhorEnvioQuote()">
-                                </div>
-                                <small id="melhorEnvioCalcStatus">Configure o Melhor Envio em ⚙️ Configurações ou use a tabela local.</small>
-                                <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-                                    <button type="button" class="btn-primary" onclick="quoteMelhorEnvioFromCalculator()">🚚 Cotar Melhor Envio</button>
-                                    <button type="button" class="btn-warning" onclick="clearMelhorEnvioQuote()">Usar tabela local</button>
-                                </div>
-                            </div>
-                            <div class="input-group">
-                                <label>Urgência</label>
-                                <select id="calcUrgency" onchange="onUrgencyChange()">
-                                    <option value="0">Normal</option>
-                                    <option value="20">Urgente — 48h (+20%)</option>
-                                    <option value="40">Urgente — 24h (+40%)</option>
-                                    <option value="custom">Personalizado</option>
-                                </select>
-                            </div>
-                            <div class="input-group" id="customUrgencyGroup" style="display:none;">
-                                <label>Markup de urgência (%)</label>
-                                <input type="number" id="calcUrgencyMarkup" value="0" min="0" max="200" step="5"
-                                       oninput="updatePriceCalculation()">
-                            </div>
-                            <div class="info-box" style="margin-top:5px;">
-                                A taxa de falha é configurada em ⚙️ Configurações e entra como cobertura de perdas.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DIREITA: painel de resultado fixo -->
-                <div class="calc-right">
-                    <button onclick="updatePriceCalculation()" class="btn-primary"
-                            style="width:100%;font-size:1em;padding:11px;border-radius:10px;
-                                   letter-spacing:0.5px;margin-bottom:4px;">
-                        🧮 Calcular Preço
-                    </button>
-                    <div class="result-price-card">
-                        <div class="result-price-label">💰 Preço Sugerido de Venda</div>
-                        <div class="result-price-value" id="calcResultPrice">R$ 0,00</div>
-                        <div id="calcResultLines"></div>
-                    </div>
-
-                    <div class="result-actions">
-                        <button class="btn-primary" onclick="saveQuoteAsOrder()" style="width:100%;">
-                            💾 Salvar como Pedido
-                        </button>
-                        <button class="btn-success" onclick="saveCalculationAsProduct()" style="width:100%;">
-                            🏷️ Salvar como Produto
-                        </button>
-                        <button class="btn-info" onclick="generatePDF()" style="width:100%;">
-                            📄 Exportar Orçamento (PDF)
-                        </button>
-                        <button class="btn-success" onclick="shareQuoteNative()" style="width:100%;">
-                            💬 Compartilhar / Baixar HTML
-                        </button>
-                    </div>
-
-                    <div class="info-box" style="margin-top:12px;font-size:0.82em;line-height:1.45;">
-                        <strong>Como o cálculo é feito:</strong><br>
-                        material + máquina/hora + mão de obra + adicionais → cobertura de falhas → margem → venda.
-                        O frete fica separado para não distorcer o lucro da peça.
-                    </div>
-
-                    <!-- Detalhamento oculto (usado internamente pelo calcResult) -->
-                    <div id="calcResult" style="display:none;"></div>
-                </div>
-
-            </div>
-        </div>
+        <div id="calculator" class="tab-panel" data-partial="partials/calculator.html"></div>
 
         <!-- ===== PRODUTOS ===== -->
-        <div id="products" class="tab-panel">
-            <div class="page-header">
-                <h1>🏷️ Produtos</h1>
-                <p>Cadastre produtos calculados para venda direta, Shopee, Mercado Livre e outros canais</p>
-            </div>
-            <div class="panel-body">
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center;">
-                    <button class="btn-primary" onclick="showProductModal()">➕ Novo Produto</button>
-                    <button class="btn-info" onclick="saveCalculationAsProduct()">🧮 Usar cálculo atual</button>
-                    <button class="btn-warning" onclick="exportProductsToCSV()">📎 Exportar CSV</button>
-                    <input type="text" id="productSearch" placeholder="Pesquisar produto, SKU ou categoria" oninput="loadProducts()" style="max-width:320px;">
-                </div>
-                <div id="productsList"></div>
-            </div>
-        </div>
+        <div id="products" class="tab-panel" data-partial="partials/products.html"></div>
 
         <!-- ===== PEDIDOS ===== -->
-        <div id="orders" class="tab-panel">
-            <div class="page-header">
-                <h1>📦 Pedidos</h1>
-                <p>Gerencie orçamentos, pedidos em andamento e entregas</p>
-            </div>
-            <div class="panel-body">
-                <div id="printQueuePanel" style="margin-bottom:20px;display:none;">
-                    <div class="chart-title" style="margin-bottom:8px;">🖨️ Fila de Impressão</div>
-                    <div id="printQueueContent"></div>
-                </div>
-                <div style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <select id="orderStatusFilter" onchange="loadOrders(true)">
-                        <option value="all">Todos os status</option>
-                        <option value="quote">Orçamento</option>
-                        <option value="approved">Aprovado</option>
-                        <option value="paid">Pago</option>
-                        <option value="printing">Em impressão</option>
-                        <option value="post">Pós-processamento</option>
-                        <option value="packaging">Embalagem</option>
-                        <option value="shipped">Enviado</option>
-                        <option value="delivered">Entregue</option>
-                        <option value="cancelled">Cancelado</option>
-                        <option value="deleted">🗑️ Lixeira</option>
-                    </select>
-                    <button class="btn-primary" onclick="exportOrdersToCSV()">📎 Exportar CSV</button>
-                    <button class="btn-warning" onclick="importOrdersFromCSV()">📥 Importar CSV</button>
-                </div>
-                <div id="ordersList"></div>
-            </div>
-        </div>
+        <div id="orders" class="tab-panel" data-partial="partials/orders.html"></div>
+
+        <!-- ===== ORÇAMENTOS ===== -->
+        <div id="quotes" class="tab-panel" data-partial="partials/quotes.html"></div>
 
         <!-- ===== CLIENTES ===== -->
-        <div id="clients" class="tab-panel">
-            <div class="page-header">
-                <h1>👥 Clientes</h1>
-                <p>Cadastro e histórico de clientes</p>
-            </div>
-            <div class="panel-body">
-                <button class="btn-primary" onclick="showClientModal()" style="margin-bottom:16px;">➕ Novo Cliente</button>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th>
-                                <th>Cidade</th><th>Total Gasto</th><th>Último Pedido</th><th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="clientsTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div id="clients" class="tab-panel" data-partial="partials/clients.html"></div>
 
         <!-- ===== MATERIAIS (ESTOQUE) ===== -->
-        <div id="inventory" class="tab-panel">
-            <div class="page-header">
-                <h1>🧱 Materiais</h1>
-                <p>Controle de estoque de filamentos e consumíveis</p>
-            </div>
-            <div class="panel-body">
-                <button class="btn-primary" onclick="showMaterialModal()" style="margin-bottom:16px;">➕ Novo Material</button>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Material</th><th>Cor</th><th>Bobina</th><th>Custo</th>
-                                <th>Estoque</th><th>Alerta Mín.</th><th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTableBody"></tbody>
-                    </table>
-                </div>
-                <div class="chart-container" style="margin-top:20px;">
-                    <div class="chart-title">⚠️ Materiais com Estoque Baixo</div>
-                    <div id="lowStockAlert"></div>
-                </div>
-            </div>
-        </div>
+        <div id="inventory" class="tab-panel" data-partial="partials/inventory.html"></div>
+
+        <!-- ===== MANUTENÇÃO ===== -->
+        <div id="maintenance" class="tab-panel" data-partial="partials/maintenance.html"></div>
 
         <!-- ===== IMPRESSORAS ===== -->
-        <div id="printers" class="tab-panel">
-            <div class="page-header">
-                <h1>🖨️ Impressoras</h1>
-                <p>Cadastro e parâmetros de custo de cada impressora</p>
-            </div>
-            <div class="panel-body">
-                <button class="btn-primary" onclick="showPrinterModal()" style="margin-bottom:16px;">➕ Nova Impressora</button>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nome</th><th>Valor</th><th>Vida Útil</th><th>Consumo</th>
-                                <th>Velocidade</th><th>Custo/h (depr + energia + nozzle)</th><th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="printersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div id="printers" class="tab-panel" data-partial="partials/printers.html"></div>
 
         <!-- ===== EMBALAGENS ===== -->
-        <div id="packaging" class="tab-panel">
-            <div class="page-header">
-                <h1>📦 Embalagens</h1>
-                <p>Tipos de embalagem com custo e peso — usados na calculadora e no frete</p>
-            </div>
-            <div class="panel-body">
-                <button class="btn-primary" onclick="showPackagingModal()" style="margin-bottom:16px;">➕ Nova Embalagem</button>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nome</th><th>Descrição</th><th>Custo</th><th>Peso</th><th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="packagingTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div id="packaging" class="tab-panel" data-partial="partials/packaging.html"></div>
 
         <!-- ===== ADICIONAIS ===== -->
-        <div id="addons" class="tab-panel">
-            <div class="page-header">
-                <h1>⭐ Adicionais</h1>
-                <p>Itens extras que podem ser incluídos no pedido (corrente, imã, tinta, verniz…)</p>
-            </div>
-            <div class="panel-body">
-                <button class="btn-primary" onclick="showAddonModal()" style="margin-bottom:16px;">➕ Novo Adicional</button>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nome</th><th>Categoria</th><th>Custo unitário</th><th>Descrição</th><th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="addonsTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <div id="addons" class="tab-panel" data-partial="partials/addons.html"></div>
 
         <!-- ===== DESPESAS ===== -->
-        <div id="expenses" class="tab-panel">
-            <div class="page-header">
-                <h1>💸 Despesas</h1>
-                <p>Controle de custos fixos e variáveis do negócio</p>
-            </div>
-            <div class="panel-body">
-                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-                    <button class="btn-primary" onclick="showExpenseModal()">➕ Nova Despesa</button>
-                    <select id="expensePeriodFilter" onchange="loadExpenses()" style="max-width:180px;">
-                        <option value="all">Todos os meses</option>
-                    </select>
-                </div>
-                <div id="expensesList"></div>
-                <div id="expensesSummary" style="margin-top:16px;"></div>
-            </div>
-        </div>
+        <div id="expenses" class="tab-panel" data-partial="partials/expenses.html"></div>
 
         <!-- ===== RELATÓRIOS ===== -->
-        <div id="reports" class="tab-panel">
-            <div class="page-header">
-                <h1>📈 Relatórios</h1>
-                <p>Análise financeira por período</p>
-            </div>
-            <div class="panel-body">
-                <div class="form-card" style="margin-bottom:16px;">
-                    <h3>📊 Período de análise</h3>
-                    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
-                        <div class="input-group" style="margin:0;flex:1;min-width:140px;">
-                            <label>Mês Inicial</label>
-                            <input type="month" id="reportStartMonth">
-                        </div>
-                        <div class="input-group" style="margin:0;flex:1;min-width:140px;">
-                            <label>Mês Final</label>
-                            <input type="month" id="reportEndMonth">
-                        </div>
-                        <button class="btn-primary" onclick="generateReport()" style="height:38px;padding:0 20px;">📊 Gerar Relatório</button>
-                    </div>
-                </div>
-                <div id="reportResult"><p style="color:var(--text-muted);">Selecione um período para gerar.</p></div>
-            </div>
-        </div>
+        <div id="reports" class="tab-panel" data-partial="partials/reports.html"></div>
 
         <!-- ===== MARKETPLACES ===== -->
-        <div id="marketplaces" class="tab-panel">
-            <div class="page-header">
-                <h1>🛒 Marketplaces</h1>
-                <p>Configure taxas e veja preços sugeridos por canal de venda</p>
-            </div>
-            <div class="panel-body">
-                <div class="form-grid">
-                    <div class="form-card">
-                        <h3>⚙️ Taxas por canal</h3>
-                        <div id="marketplaceConfigList"></div>
-                        <button class="btn-primary" onclick="saveMarketplaceConfigs()" style="margin-top:10px; width:100%;">💾 Salvar taxas</button>
-                    </div>
-                    <div class="form-card">
-                        <h3>📌 Preços dos produtos</h3>
-                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:10px;">O sistema parte do preço líquido desejado e calcula o preço bruto para cobrir a taxa do marketplace.</p>
-                        <div id="marketplaceProductsList"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="marketplaces" class="tab-panel" data-partial="partials/marketplaces.html"></div>
 
         <!-- ===== CONFIGURAÇÕES ===== -->
-        <div id="settings" class="tab-panel">
-            <div class="page-header">
-                <h1>⚙️ Configurações</h1>
-                <p>Configuração simplificada com foco no custo/hora da impressora</p>
-            </div>
-            <div class="panel-body">
-                <div class="form-grid">
-                    <div class="form-card">
-                        <h3>🖨️ Custo da Impressora por Hora</h3>
-                        <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:12px;">
-                            O sistema calcula automaticamente: depreciação/h + manutenção/h + energia/h.
-                            O valor da impressora, vida útil e potência ficam no cadastro de impressoras.
-                        </p>
-                        <div class="input-group"><label>Preço da energia (R$/kWh)</label><input type="number" id="settingEnergyPrice" value="1.00" step="0.01" min="0"></div>
-                        <div class="input-group"><label>Manutenção média por hora (R$/h)</label><input type="number" id="settingMaintenancePerHour" value="0.50" min="0" step="0.05"><small>Use para bico, lubrificação, desgaste geral, cola, IPA, limpeza e pequenos consumíveis.</small></div>
-                        <div class="info-box"><span id="printerHourCostInfo">Selecione uma impressora na calculadora para ver o custo/hora.</span></div>
-                    </div>
-                    <div class="form-card">
-                        <h3>💰 Regras de Preço</h3>
-                        <div class="input-group"><label>Valor da sua hora de trabalho (R$/h)</label><input type="number" id="settingHourlyRate" value="60" min="0" step="1"></div>
-                        <div class="input-group"><label>Margem de lucro padrão (%)</label><input type="number" id="settingProfitMargin" value="50" step="5" min="0"></div>
-                        <div class="input-group"><label>Perda de material (%)</label><input type="number" id="settingLossRate" value="10" step="1" min="0" max="100"><small>Percentual aplicado sobre filamento para suporte, purge e sobras.</small></div>
-                        <div class="input-group"><label>Taxa de falha (%)</label><input type="number" id="settingFailRate" value="5" min="0" max="80" step="1"><small>Ex.: 5% faz o sistema dividir o custo por 0,95 para cobrir impressões perdidas.</small></div>
-                        <div class="input-group"><label>Imposto / IR sobre o lucro (%)</label><input type="number" id="settingTaxRate" value="0" min="0" max="100" step="0.5"><small>Aplicado sobre o lucro bruto para estimar o lucro líquido. Use 0 para ignorar.</small></div>
-                        <div class="input-group"><label>Embalagem padrão/fallback (R$)</label><input type="number" id="settingPackagingCost" value="0" min="0" step="0.50"><small>Use 0 quando quiser cobrar embalagem apenas se uma embalagem for selecionada.</small></div>
-                        <div class="input-group"><label>Meta de faturamento mensal (R$)</label><input type="number" id="settingMonthlyGoal" value="0" min="0" step="100"><small>Aparece como barra de progresso no dashboard. Use 0 para ocultar.</small></div>
-                        <div class="input-group"><label>Alerta de pedido atrasado (dias)</label><input type="number" id="settingAlertDays" value="7" min="1" max="90"><small>Pedidos em aberto há mais que este prazo aparecem como alerta no dashboard.</small></div>
-                        <div class="info-box" style="margin-top:8px;">
-                            <strong>Itens zerados por padrão:</strong> taxa de personalização e atendimento ao cliente. Use apenas quando houver criação/modelagem real.
-                        </div>
-                        <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <button class="btn-primary" onclick="saveSettingsNow()">💾 Salvar configurações agora</button>
-                            <small id="sqlitePersistenceStatus">Aguardando salvamento...</small>
-                        </div>
-                    </div>
-                    <div class="form-card">
-                        <h3>🖨️ Bambu Lab — Monitoramento em Tempo Real</h3>
-                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:14px;">
-                            Conecta ao broker MQTT local da impressora para exibir progresso, camadas e temperaturas
-                            diretamente nos cards de pedido. A impressora e o computador devem estar na mesma rede.
-                        </p>
-                        <div class="input-group">
-                            <label>IP da impressora (ex.: 192.168.1.42)</label>
-                            <input type="text" id="settingBambuIp" placeholder="192.168.x.x"
-                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
-                        </div>
-                        <div class="input-group">
-                            <label>Número de série (Serial Number)</label>
-                            <input type="text" id="settingBambuSerial" placeholder="01SXXXXXXXXXXXXXXX"
-                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
-                            <small>Encontre em: Menu da impressora → Settings → Device → Serial Number</small>
-                        </div>
-                        <div class="input-group">
-                            <label>Access Code</label>
-                            <input type="password" id="settingBambuAccessCode" placeholder="8 caracteres"
-                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
-                            <small>Encontre em: Menu da impressora → Settings → WLAN → Access Code</small>
-                        </div>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
-                            <button class="btn-primary" onclick="saveBambuSettings()">💾 Salvar</button>
-                            <button class="btn-warning" onclick="testBambuConnection()">🔌 Testar conexão</button>
-                            <span id="bambuStatusBadge" style="font-size:0.83em;"></span>
-                        </div>
-                        <div id="bambuLiveDashboard" style="margin-top:14px;display:none;"></div>
-                    </div>
-                    <div class="form-card">
-                        <h3>🚚 Frete por Peso</h3><div id="shippingTable"></div>
-                        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn-primary" onclick="saveShippingSettings()">💾 Salvar Frete</button><button class="btn-warning" onclick="loadDefaultShipping()">↩️ Padrão</button></div>
-                    </div>
-                    <div class="form-card">
-                        <h3>📮 Frete por CEP/UF</h3><div id="cepShippingTable"></div>
-                        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn-primary" onclick="saveShippingSettings()">💾 Salvar CEP/UF</button><button class="btn-warning" onclick="loadDefaultShipping()">↩️ Padrão</button></div>
-                    </div>
-                    <div class="form-card">
-                        <h3>🚚 Melhor Envio</h3>
-                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px;">
-                            Configure sua conta para cotar PAC, Sedex e transportadoras pela API. O token fica salvo apenas neste computador, em <code>app_data/melhor_envio_config.json</code>.
-                        </p>
-                        <div class="input-group">
-                            <label><input type="checkbox" id="meEnabled"> Ativar integração Melhor Envio</label>
-                        </div>
-                        <div class="input-group">
-                            <label>Ambiente</label>
-                            <select id="meEnvironment">
-                                <option value="production">Produção</option>
-                                <option value="sandbox">Sandbox/Testes</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>CEP de origem</label>
-                            <input type="text" id="meOriginCep" placeholder="Ex.: 09080-510" maxlength="9">
-                        </div>
-                        <div class="input-group">
-                            <label>Access Token / Bearer Token</label>
-                            <input type="password" id="meAccessToken" placeholder="Cole o token aqui para salvar ou deixe vazio para manter o atual" autocomplete="off">
-                            <small>Por segurança, o token salvo não aparece na tela. Deixe vazio para manter o token atual.</small>
-                        </div>
-                        <div class="input-group">
-                            <label>Serviços específicos (opcional)</label>
-                            <input type="text" id="meServices" placeholder="Ex.: 1,2,3 — vazio consulta disponíveis">
-                            <small>Use vazio para deixar o Melhor Envio retornar todos os serviços disponíveis.</small>
-                        </div>
-                        <div class="input-group">
-                            <label>User-Agent / identificação</label>
-                            <input type="text" id="meUserAgent" placeholder="Sistema3D Local (seu-email@exemplo.com)">
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                            <button type="button" class="btn-primary" onclick="saveMelhorEnvioConfig()">💾 Salvar Melhor Envio</button>
-                            <button type="button" class="btn-warning" onclick="loadMelhorEnvioConfig()">↻ Recarregar</button>
-                        </div>
-                        <small id="meConfigStatus">Carregando configuração...</small>
-                    </div>
-                    <div class="form-card">
-                        <h3>💾 Backup</h3>
-                        <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:15px;">Dados salvos automaticamente em <code>app_data/sistema3d.sqlite</code> quando iniciado pelo <code>server.py</code>, <code>iniciar.sh</code> ou <code>iniciar_windows.bat</code>.</p>
-                        <button class="btn-primary" onclick="backupData()" style="margin-bottom:8px; width:100%;">📥 Exportar Backup (.sqlite)</button>
-                        <button class="btn-warning" onclick="restoreBackup()" style="width:100%;">📤 Importar Backup (.sqlite)</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="settings" class="tab-panel" data-partial="partials/settings.html"></div>
 
         <!-- ===== MELHOR ENVIO ===== -->
-        <div id="melhor-envio-settings" class="tab-panel">
-            <div class="page-header">
-                <h1>🚚 Melhor Envio</h1>
-                <p>Configure sua integração para cotar frete pelo CEP usando o servidor local.</p>
-            </div>
-            <div class="panel-body">
-                <div class="form-grid">
-                    <div class="form-card">
-                        <h3>🔑 Dados da integração</h3>
-                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px;">
-                            O token fica salvo somente neste computador. Para funcionar, abra o sistema pelo <code>server.py</code>, <code>iniciar.sh</code> ou <code>iniciar_windows.bat</code>, não direto pelo arquivo HTML.
-                        </p>
-                        <div class="input-group">
-                            <label><input type="checkbox" id="meEnabled2"> Ativar integração Melhor Envio</label>
-                        </div>
-                        <div class="input-group">
-                            <label>Ambiente</label>
-                            <select id="meEnvironment2">
-                                <option value="production">Produção</option>
-                                <option value="sandbox">Sandbox/Testes</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>CEP de origem</label>
-                            <input type="text" id="meOriginCep2" placeholder="Ex.: 09080-510" maxlength="9">
-                        </div>
-                        <div class="input-group">
-                            <label>Access Token / Bearer Token</label>
-                            <input type="password" id="meAccessToken2" placeholder="Cole o token aqui" autocomplete="off">
-                            <small>Depois de salvo, o token não aparece novamente. Para trocar, cole outro token e salve.</small>
-                        </div>
-                        <div class="input-group">
-                            <label>Serviços específicos (opcional)</label>
-                            <input type="text" id="meServices2" placeholder="Ex.: 1,2,3 — vazio consulta todos">
-                        </div>
-                        <div class="input-group">
-                            <label>User-Agent / identificação</label>
-                            <input type="text" id="meUserAgent2" placeholder="Sistema3D Local (seu-email@exemplo.com)">
-                        </div>
-                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                            <button type="button" class="btn-primary" onclick="saveMelhorEnvioConfig()">💾 Salvar Melhor Envio</button>
-                            <button type="button" class="btn-warning" onclick="loadMelhorEnvioConfig()">↻ Recarregar</button>
-                        </div>
-                        <small id="meConfigStatus2">Carregando configuração...</small>
-                    </div>
-                    <div class="form-card">
-                        <h3>📦 Como usar na calculadora</h3>
-                        <p style="font-size:0.9em;color:var(--text-muted);line-height:1.55;">
-                            Na calculadora, informe o CEP de destino, peso/dimensões da caixa e clique em <strong>Cotar Melhor Envio</strong>. Se a API falhar, o sistema volta para a tabela local de frete por UF.
-                        </p>
-                        <button type="button" class="btn-primary" onclick="switchTab('calculator')">Ir para Calculadora</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div id="melhor-envio-settings" class="tab-panel" data-partial="partials/melhor-envio-settings.html"></div>
 
     </main><!-- /main -->
 </div><!-- /app -->
@@ -823,13 +179,16 @@
 <script src="js/products.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/maintenance.js"></script>
 <script src="js/bambu.js"></script>
 <script src="js/expenses.js"></script>
 <script src="js/reports.js"></script>
 <script src="js/shipping.js"></script>
+<script src="js/quotes.js"></script>
 
 <script>
     initDB();
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                 

@@ -48,6 +48,7 @@ function loadMaterials() {
             sel.appendChild(opt);
         });
     }
+    if (typeof updateCalcEnergyFactorBadge === 'function') updateCalcEnergyFactorBadge();
 }
 
 function showMaterialModal() {
@@ -57,13 +58,13 @@ function showMaterialModal() {
 }
 
 function showEditMaterialModal(matId) {
-    const r = db.exec('SELECT * FROM materials WHERE id = ?', [matId]);
+    const r = db.exec('SELECT id, name, color, spool_weight, cost, stock, min_alert, energy_factor FROM materials WHERE id = ?', [matId]);
     if (!r.length) return;
-    const [id, name, color, spoolW, cost, stock, minAlert] = r[0].values[0];
+    const [id, name, color, spoolW, cost, stock, minAlert, ef] = r[0].values[0];
 
     document.getElementById('modalTitle').innerHTML = '✏️ Editar Material';
     document.getElementById('modalBody').innerHTML =
-        materialFormHTML({ name, color, spoolWeight: spoolW, cost, stock, minAlert }) +
+        materialFormHTML({ name, color, spoolWeight: spoolW, cost, stock, minAlert, energyFactor: ef }) +
         `<input type="hidden" id="matEditId" value="${id}">`;
     openModal();
     document.querySelector('#modalBody .btn-primary').setAttribute('onclick', 'saveMaterial(true)');
@@ -71,6 +72,10 @@ function showEditMaterialModal(matId) {
 }
 
 function materialFormHTML(data = {}) {
+    const autoFactor = typeof getEnergyFactorFromName === 'function'
+        ? getEnergyFactorFromName(data.name || '')
+        : 1.00;
+    const efValue = (data.energyFactor && data.energyFactor > 0) ? data.energyFactor : autoFactor;
     return `
         <div class="input-group"><label>Material</label>
             <input type="text" id="matName" value="${h(data.name || '')}" placeholder="Ex: PLA"></div>
@@ -80,6 +85,10 @@ function materialFormHTML(data = {}) {
             <input type="number" id="matSpoolWeight" value="${data.spoolWeight ?? 1000}"></div>
         <div class="input-group"><label>Custo (R$/kg)</label>
             <input type="number" id="matCost" value="${data.cost ?? 90}" step="0.01"></div>
+        <div class="input-group"><label>Fator de Energia
+            <small style="font-weight:400;color:var(--text-muted);">PLA=1.00, PETG=1.10, ABS=1.30, Nylon=1.40</small></label>
+            <input type="number" id="matEnergyFactor" value="${efValue}" min="0.5" max="3.0" step="0.05">
+            <small>Multiplica o custo de energia pela maior demanda térmica do material.</small></div>
         <div class="input-group"><label>Estoque (g)</label>
             <input type="number" id="matStock" value="${data.stock ?? 1000}"></div>
         <div class="input-group"><label>Alerta Mínimo (g)</label>
@@ -89,23 +98,24 @@ function materialFormHTML(data = {}) {
 }
 
 function saveMaterial(isEdit = false) {
-    const name      = document.getElementById('matName').value.trim();
-    const color     = document.getElementById('matColor').value.trim();
-    const spoolW    = parseFloat(document.getElementById('matSpoolWeight').value);
-    const cost      = parseFloat(document.getElementById('matCost').value);
-    const stock     = parseFloat(document.getElementById('matStock').value);
-    const minAlert  = parseFloat(document.getElementById('matMinAlert').value);
+    const name        = document.getElementById('matName').value.trim();
+    const color       = document.getElementById('matColor').value.trim();
+    const spoolW      = parseFloat(document.getElementById('matSpoolWeight').value);
+    const cost        = parseFloat(document.getElementById('matCost').value);
+    const stock       = parseFloat(document.getElementById('matStock').value);
+    const minAlert    = parseFloat(document.getElementById('matMinAlert').value);
+    const energyFactor = parseFloat(document.getElementById('matEnergyFactor')?.value) || 1.00;
 
     if (!name) { showToast('⚠️ Nome do material é obrigatório'); return; }
 
     if (isEdit) {
         const id = parseInt(document.getElementById('matEditId').value);
-        db.run('UPDATE materials SET name=?, color=?, spool_weight=?, cost=?, stock=?, min_alert=? WHERE id=?',
-            [name, color, spoolW, cost, stock, minAlert, id]);
+        db.run('UPDATE materials SET name=?, color=?, spool_weight=?, cost=?, stock=?, min_alert=?, energy_factor=? WHERE id=?',
+            [name, color, spoolW, cost, stock, minAlert, energyFactor, id]);
         showToast('✅ Material atualizado!');
     } else {
-        db.run('INSERT INTO materials (name, color, spool_weight, cost, stock, min_alert) VALUES (?,?,?,?,?,?)',
-            [name, color, spoolW, cost, stock, minAlert]);
+        db.run('INSERT INTO materials (name, color, spool_weight, cost, stock, min_alert, energy_factor) VALUES (?,?,?,?,?,?,?)',
+            [name, color, spoolW, cost, stock, minAlert, energyFactor]);
         showToast('✅ Material salvo!');
     }
 

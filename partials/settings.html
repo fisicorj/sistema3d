@@ -1,0 +1,137 @@
+            <div class="page-header">
+                <h1>⚙️ Configurações</h1>
+                <p>Configuração simplificada com foco no custo/hora da impressora</p>
+            </div>
+            <div class="panel-body">
+                <div class="form-grid">
+                    <div class="form-card">
+                        <h3>🏷️ Identidade do Negócio</h3>
+                        <div class="input-group"><label>Nome da empresa / marca</label>
+                            <input type="text" id="settingBrandName" placeholder="Ex: Impressões da Ana" maxlength="60">
+                            <small>Aparece nos orçamentos enviados ao cliente.</small></div>
+                        <div class="input-group"><label>Validade do orçamento (dias)</label>
+                            <input type="number" id="settingQuoteValidityDays" value="15" min="1" max="90">
+                            <small>Prazo padrão para orçamentos enviados ao cliente.</small></div>
+                    </div>
+                    <div class="form-card">
+                        <h3>🖨️ Custo da Impressora por Hora</h3>
+                        <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:12px;">
+                            O sistema calcula automaticamente: depreciação/h + manutenção/h + energia/h.
+                            O valor da impressora, vida útil e potência ficam no cadastro de impressoras.
+                        </p>
+                        <div class="input-group"><label>Preço da energia (R$/kWh)</label><input type="number" id="settingEnergyPrice" value="1.00" step="0.01" min="0"></div>
+                        <div class="input-group">
+                            <label>Manutenção/h — fallback (R$/h)
+                                <small id="calcMaintenanceInfo" style="margin-left:6px;font-weight:400;"></small>
+                            </label>
+                            <input type="number" id="settingMaintenancePerHour" value="0.50" min="0" step="0.05">
+                            <small>Usado apenas quando <strong>nenhum item ativo</strong> estiver cadastrado em
+                                <a href="#" onclick="switchTab('maintenance',event);return false;">🔧 Manutenção</a>.
+                                Com itens ativos, a soma deles substitui este valor automaticamente.</small>
+                        </div>
+                        <div class="info-box"><span id="printerHourCostInfo">Selecione uma impressora na calculadora para ver o custo/hora.</span></div>
+                    </div>
+                    <div class="form-card">
+                        <h3>💰 Regras de Preço</h3>
+                        <div class="input-group"><label>Valor da sua hora de trabalho (R$/h)</label><input type="number" id="settingHourlyRate" value="60" min="0" step="1"></div>
+                        <div class="input-group"><label>Margem de lucro padrão (%)</label><input type="number" id="settingProfitMargin" value="50" step="5" min="0"></div>
+                        <div class="input-group"><label>Perda de material (%)</label><input type="number" id="settingLossRate" value="10" step="1" min="0" max="100"><small>Percentual aplicado sobre filamento para suporte, purge e sobras.</small></div>
+                        <div class="input-group"><label>Custo por purga / troca de cor (R$)</label><input type="number" id="settingPurgeCostPerChange" value="3.00" min="0" step="0.50"><small>Padrão usado na calculadora quando não especificado por pedido.</small></div>
+                        <div class="input-group"><label>Taxa de falha (%)</label><input type="number" id="settingFailRate" value="5" min="0" max="80" step="1"><small>Ex.: 5% faz o sistema dividir o custo por 0,95 para cobrir impressões perdidas.</small></div>
+                        <div class="input-group"><label>Imposto / IR sobre o lucro (%)</label><input type="number" id="settingTaxRate" value="0" min="0" max="100" step="0.5"><small>Aplicado sobre o lucro bruto para estimar o lucro líquido. Use 0 para ignorar.</small></div>
+                        <div class="input-group"><label>Embalagem padrão/fallback (R$)</label><input type="number" id="settingPackagingCost" value="0" min="0" step="0.50"><small>Use 0 quando quiser cobrar embalagem apenas se uma embalagem for selecionada.</small></div>
+                        <div class="input-group"><label>Meta de faturamento mensal (R$)</label><input type="number" id="settingMonthlyGoal" value="0" min="0" step="100"><small>Aparece como barra de progresso no dashboard. Use 0 para ocultar.</small></div>
+                        <div class="input-group"><label>Alerta de pedido atrasado (dias)</label><input type="number" id="settingAlertDays" value="7" min="1" max="90"><small>Pedidos em aberto há mais que este prazo aparecem como alerta no dashboard.</small></div>
+                        <div class="info-box" style="margin-top:8px;">
+                            <strong>Itens zerados por padrão:</strong> taxa de personalização e atendimento ao cliente. Use apenas quando houver criação/modelagem real.
+                        </div>
+                        <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <button class="btn-primary" onclick="saveSettingsNow()">💾 Salvar configurações agora</button>
+                            <small id="sqlitePersistenceStatus">Aguardando salvamento...</small>
+                        </div>
+                    </div>
+                    <div class="form-card">
+                        <h3>🖨️ Bambu Lab — Monitoramento em Tempo Real</h3>
+                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:14px;">
+                            Conecta ao broker MQTT local da impressora para exibir progresso, camadas e temperaturas
+                            diretamente nos cards de pedido. A impressora e o computador devem estar na mesma rede.
+                        </p>
+                        <div class="input-group">
+                            <label>IP da impressora (ex.: 192.168.1.42)</label>
+                            <input type="text" id="settingBambuIp" placeholder="192.168.x.x"
+                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
+                        </div>
+                        <div class="input-group">
+                            <label>Número de série (Serial Number)</label>
+                            <input type="text" id="settingBambuSerial" placeholder="01SXXXXXXXXXXXXXXX"
+                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
+                            <small>Encontre em: Menu da impressora → Settings → Device → Serial Number</small>
+                        </div>
+                        <div class="input-group">
+                            <label>Access Code</label>
+                            <input type="password" id="settingBambuAccessCode" placeholder="8 caracteres"
+                                   oninput="debouncedSaveBambuSettings()" onchange="saveBambuSettings()">
+                            <small>Encontre em: Menu da impressora → Settings → WLAN → Access Code</small>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">
+                            <button class="btn-primary" onclick="saveBambuSettings()">💾 Salvar</button>
+                            <button class="btn-warning" onclick="testBambuConnection()">🔌 Testar conexão</button>
+                            <span id="bambuStatusBadge" style="font-size:0.83em;"></span>
+                        </div>
+                        <div id="bambuLiveDashboard" style="margin-top:14px;display:none;"></div>
+                    </div>
+                    <div class="form-card">
+                        <h3>🚚 Frete por Peso</h3><div id="shippingTable"></div>
+                        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn-primary" onclick="saveShippingSettings()">💾 Salvar Frete</button><button class="btn-warning" onclick="loadDefaultShipping()">↩️ Padrão</button></div>
+                    </div>
+                    <div class="form-card">
+                        <h3>📮 Frete por CEP/UF</h3><div id="cepShippingTable"></div>
+                        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;"><button class="btn-primary" onclick="saveShippingSettings()">💾 Salvar CEP/UF</button><button class="btn-warning" onclick="loadDefaultShipping()">↩️ Padrão</button></div>
+                    </div>
+                    <div class="form-card">
+                        <h3>🚚 Melhor Envio</h3>
+                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px;">
+                            Configure sua conta para cotar PAC, Sedex e transportadoras pela API. O token fica salvo apenas neste computador, em <code>app_data/melhor_envio_config.json</code>.
+                        </p>
+                        <div class="input-group">
+                            <label><input type="checkbox" id="meEnabled"> Ativar integração Melhor Envio</label>
+                        </div>
+                        <div class="input-group">
+                            <label>Ambiente</label>
+                            <select id="meEnvironment">
+                                <option value="production">Produção</option>
+                                <option value="sandbox">Sandbox/Testes</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>CEP de origem</label>
+                            <input type="text" id="meOriginCep" placeholder="Ex.: 09080-510" maxlength="9">
+                        </div>
+                        <div class="input-group">
+                            <label>Access Token / Bearer Token</label>
+                            <input type="password" id="meAccessToken" placeholder="Cole o token aqui para salvar ou deixe vazio para manter o atual" autocomplete="off">
+                            <small>Por segurança, o token salvo não aparece na tela. Deixe vazio para manter o token atual.</small>
+                        </div>
+                        <div class="input-group">
+                            <label>Serviços específicos (opcional)</label>
+                            <input type="text" id="meServices" placeholder="Ex.: 1,2,3 — vazio consulta disponíveis">
+                            <small>Use vazio para deixar o Melhor Envio retornar todos os serviços disponíveis.</small>
+                        </div>
+                        <div class="input-group">
+                            <label>User-Agent / identificação</label>
+                            <input type="text" id="meUserAgent" placeholder="Sistema3D Local (seu-email@exemplo.com)">
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="btn-primary" onclick="saveMelhorEnvioConfig()">💾 Salvar Melhor Envio</button>
+                            <button type="button" class="btn-warning" onclick="loadMelhorEnvioConfig()">↻ Recarregar</button>
+                        </div>
+                        <small id="meConfigStatus">Carregando configuração...</small>
+                    </div>
+                    <div class="form-card">
+                        <h3>💾 Backup</h3>
+                        <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:15px;">Dados salvos automaticamente em <code>app_data/sistema3d.sqlite</code> quando iniciado pelo <code>server.py</code>, <code>iniciar.sh</code> ou <code>iniciar_windows.bat</code>.</p>
+                        <button class="btn-primary" onclick="backupData()" style="margin-bottom:8px; width:100%;">📥 Exportar Backup (.sqlite)</button>
+                        <button class="btn-warning" onclick="restoreBackup()" style="width:100%;">📤 Importar Backup (.sqlite)</button>
+                    </div>
+                </div>
+            </div>

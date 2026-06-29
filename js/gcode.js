@@ -75,6 +75,9 @@ function clearGcode() {
     document.getElementById('gcodePanel').style.display = 'none';
     document.getElementById('gcodeImportBtn').style.display = 'inline-block';
     setManualInputsDisabled(false);
+    // Zera trocas de cor ao remover gcode
+    const ccEl = document.getElementById('calcColorChanges');
+    if (ccEl) ccEl.value = 0;
     updatePriceCalculation();
 }
 
@@ -204,11 +207,12 @@ function parseGcode(text, filename, sliceInfoXml = null) {
 
     const data = {
         filename,
-        slicer:      detectSlicer(lines, filename),
-        printTime:   null,   // horas (float)
-        totalWeight: null,   // gramas
-        purgeWeight: 0,      // gramas desperdiçadas no purge/wipe tower
-        slots:       [],     // [{index, color, type, weight, materialId}]
+        slicer:        detectSlicer(lines, filename),
+        printTime:     null,   // horas (float)
+        totalWeight:   null,   // gramas
+        purgeWeight:   0,      // gramas desperdiçadas no purge/wipe tower
+        colorChanges:  0,      // trocas de cor detectadas no gcode
+        slots:         [],     // [{index, color, type, weight, materialId}]
     };
 
     if (data.slicer === 'bambu' || data.slicer === 'orca') {
@@ -265,6 +269,7 @@ function detectSlicer(lines, filename) {
 
 function parseBambu(lines, data) {
     let colors = [], types = [], weights = [];
+    let m621Count = 0;
 
     for (const line of lines) {
         let m;
@@ -300,7 +305,14 @@ function parseBambu(lines, data) {
         // Tempo — formato 3MF Bambu: ; model printing time: 1h 23m; total estimated time: 2h 24m 52s
         if ((m = line.match(/;\s*(?:model printing time|total estimated time)\s*:\s*([\dhms \t]+)/i)))
             data.printTime = data.printTime || parseTimeStr(m[1].trim());
+
+        // Trocas de cor Bambu/OrcaSlicer: M621 S[n]A = conclusão de troca AMS
+        // A primeira ocorrência é o carregamento inicial (não é troca), as demais são trocas reais.
+        if (/^M621 S\d+A\b/.test(line.trim())) m621Count++;
     }
+
+    // Desconta 1 pelo carregamento inicial do AMS
+    if (m621Count > 0) data.colorChanges = m621Count - 1;
 
     // Monta slots (só os que têm peso > 0.01g)
     const count = Math.max(colors.length, types.length, weights.length);
@@ -381,6 +393,8 @@ function parsePrusa(lines, data) {
             colors = m[1].trim().split(';').map(s => s.trim());
         if ((m = line.match(/;\s*estimated printing time[^=]*=\s*(.+)/i)))
             data.printTime = parseTimeStr(m[1].trim());
+        // M600 = troca de filamento manual (PrusaSlicer/SuperSlicer)
+        if (/^M600\b/.test(line.trim())) data.colorChanges++;
     }
 
     const count = weights.length;
@@ -418,6 +432,8 @@ function parseCura(lines, data) {
             data.printTime = parseInt(m[1]) / 3600;
         if ((m = line.match(/;Print time:\s*(.+)/i)))
             data.printTime = parseTimeStr(m[1]);
+        // M600/M701 = troca de filamento (Cura, etc.)
+        if (/^M600\b|^M701\b/.test(line.trim())) data.colorChanges++;
     }
 }
 
@@ -507,6 +523,7 @@ function renderGcodePanel() {
                 🧱 <strong style="color:var(--text);">Total:</strong> ${(gcodeData.totalWeight || 0).toFixed(2)}g &nbsp;|&nbsp;
                 🎨 <strong style="color:var(--text);">Slots:</strong> ${gcodeData.slots.length}
                 ${gcodeData.purgeWeight > 0 ? `&nbsp;|&nbsp; 🗑️ <strong style="color:var(--text);">Purge:</strong> ${gcodeData.purgeWeight.toFixed(2)}g` : ''}
+                ${gcodeData.colorChanges > 0 ? `&nbsp;|&nbsp; 🔄 <strong style="color:var(--text);">Trocas:</strong> ${gcodeData.colorChanges}` : ''}
             </div>
             <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border);">
                 <table style="width:100%; min-width:420px; font-size:0.84em; border-collapse:collapse;">
@@ -538,6 +555,9 @@ function renderGcodePanel() {
         const el = document.getElementById('calcWeight');
         if (el) { el.value = gcodeData.totalWeight.toFixed(1) + 'g'; }
     }
+    // Auto-preenche trocas de cor detectadas no gcode
+    const ccEl = document.getElementById('calcColorChanges');
+    if (ccEl) ccEl.value = gcodeData.colorChanges || 0;
 
     setManualInputsDisabled(true);
 }
@@ -550,7 +570,7 @@ function onGcodeSlotChange(slotIndex, materialId) {
 }
 
 function setManualInputsDisabled(disabled) {
-    ['calcWeight', 'calcPrintTime', 'calcMaterial'].forEach(id => {
+    ['calcWeight', 'calcPrintTime', 'calcMaterial', 'calcColorChanges'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.disabled = disabled;

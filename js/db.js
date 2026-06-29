@@ -6,7 +6,24 @@ const DB_API_URL = '/api/db';        // persistência real em arquivo SQLite loc
 let sqliteServerPersistence = false;
 let persistTimer = null;
 
+async function loadAllPartials() {
+    const panels = document.querySelectorAll('[data-partial]');
+    await Promise.all(Array.from(panels).map(async panel => {
+        const url = panel.dataset.partial;
+        try {
+            const res = await fetch(url, { cache: 'no-store' });
+            if (res.ok) panel.innerHTML = await res.text();
+        } catch (e) {
+            console.warn('Falha ao carregar partial:', url, e);
+        }
+    }));
+}
+
 async function initDB() {
+    // Carrega todos os parciais HTML antes de inicializar o banco,
+    // garantindo que todos os elementos DOM existam quando as funções de carga forem chamadas.
+    await loadAllPartials();
+
     const SQL = await initSqlJs({
         locateFile: file => `js/${file}`
     });
@@ -20,6 +37,7 @@ async function initDB() {
     loadPackaging(); loadAddons();
     if (typeof loadProducts === 'function') loadProducts();
     if (typeof loadMarketplaces === 'function') loadMarketplaces();
+    if (typeof loadQuotes === 'function') loadQuotes();
     updateDashboard(); updateStatsBar(); updateAlertSystem();
     setupEventListeners();
 }
@@ -233,6 +251,7 @@ function createTables() {
     ensureColumn('orders', 'paid_amount', 'REAL');
 
     ensureColumn('printers', 'hours_used', 'REAL');
+    ensureColumn('materials', 'energy_factor', 'REAL DEFAULT 1.0');
 
     db.run(`CREATE TABLE IF NOT EXISTS order_notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -257,8 +276,46 @@ function createTables() {
         date TEXT NOT NULL,
         notes TEXT)`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS maintenance_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        cost REAL NOT NULL DEFAULT 0,
+        lifespan_hours REAL NOT NULL DEFAULT 100,
+        active INTEGER NOT NULL DEFAULT 1,
+        notes TEXT)`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS quotes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        client_id INTEGER,
+        client_name TEXT,
+        item_description TEXT,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        unit_price REAL NOT NULL DEFAULT 0,
+        total_price REAL NOT NULL DEFAULT 0,
+        shipping_cost REAL NOT NULL DEFAULT 0,
+        total_with_shipping REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'aguardando',
+        whatsapp_text TEXT,
+        validity_date TEXT,
+        created_at TEXT NOT NULL,
+        order_id INTEGER)`);
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_order_notes_order ON order_notes(order_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status)`);
+}
+
+// Custo de manutenção por hora calculado a partir dos itens cadastrados.
+// Se não houver itens ativos, retorna o valor do setting (retrocompatibilidade).
+function getMaintenancePerHour() {
+    try {
+        const r = db.exec(
+            'SELECT SUM(cost / lifespan_hours) FROM maintenance_items WHERE active = 1 AND lifespan_hours > 0'
+        );
+        const sum = parseFloat(r[0]?.values[0]?.[0]);
+        if (!isNaN(sum) && sum > 0) return sum;
+    } catch (_) {}
+    return readNumberFromSettings('maintenancePerHour', 0.50);
 }
 
 function ensureColumn(table, column, type) {
@@ -292,7 +349,7 @@ function initDefaultCepShippingRates() {
 }
 
 function migrateSettings() {
-    const defaults = { energyPrice:'1.00', hourlyRate:'60', profitMargin:'50', lossRate:'10', maintenancePerHour:'0.50', failRate:'5', packagingCost:'0', customFee:'0', serviceTime:'0', taxRate:'0', monthlyGoal:'0', alertDays:'7', bambuIp:'', bambuSerial:'', bambuAccessCode:'' };
+    const defaults = { energyPrice:'1.00', hourlyRate:'60', profitMargin:'50', lossRate:'10', maintenancePerHour:'0.50', failRate:'5', packagingCost:'0', customFee:'0', serviceTime:'0', taxRate:'0', monthlyGoal:'0', alertDays:'7', bambuIp:'', bambuSerial:'', bambuAccessCode:'', purgeCostPerChange:'3.00', brandName:'', quoteValidityDays:'15' };
     for (const [k, v] of Object.entries(defaults)) db.run('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)', [k, v]);
     const hasPkg = db.exec('SELECT COUNT(*) FROM packaging');
     initDefaultCepShippingRates();
@@ -349,12 +406,15 @@ function loadSettings() {
     setInputValue('settingBambuIp', currentSettings.bambuIp, '');
     setInputValue('settingBambuSerial', currentSettings.bambuSerial, '');
     setInputValue('settingBambuAccessCode', currentSettings.bambuAccessCode, '');
+    setInputValue('settingPurgeCostPerChange', currentSettings.purgeCostPerChange, '3.00');
+    setInputValue('settingBrandName', currentSettings.brandName, '');
+    setInputValue('settingQuoteValidityDays', currentSettings.quoteValidityDays, '15');
     updatePrinterHourInfo();
     loadShippingTable();
 }
 
 function saveSettings() {
-    const map = { settingEnergyPrice:'energyPrice', settingHourlyRate:'hourlyRate', settingProfitMargin:'profitMargin', settingLossRate:'lossRate', settingMaintenancePerHour:'maintenancePerHour', settingFailRate:'failRate', settingPackagingCost:'packagingCost', settingTaxRate:'taxRate', settingMonthlyGoal:'monthlyGoal', settingAlertDays:'alertDays', settingBambuIp:'bambuIp', settingBambuSerial:'bambuSerial', settingBambuAccessCode:'bambuAccessCode' };
+    const map = { settingEnergyPrice:'energyPrice', settingHourlyRate:'hourlyRate', settingProfitMargin:'profitMargin', settingLossRate:'lossRate', settingMaintenancePerHour:'maintenancePerHour', settingFailRate:'failRate', settingPackagingCost:'packagingCost', settingTaxRate:'taxRate', settingMonthlyGoal:'monthlyGoal', settingAlertDays:'alertDays', settingBambuIp:'bambuIp', settingBambuSerial:'bambuSerial', settingBambuAccessCode:'bambuAccessCode', settingPurgeCostPerChange:'purgeCostPerChange', settingBrandName:'brandName', settingQuoteValidityDays:'quoteValidityDays' };
     for (const [id, key] of Object.entries(map)) {
         const el = document.getElementById(id);
         if (!el) continue;
@@ -378,9 +438,10 @@ function updatePrinterHourInfo() {
     const el=document.getElementById('printerHourCostInfo'); if(!el || !db) return;
     const printerId=getFirstPrinterForInfo();
     const printer=typeof getPrinterCost==='function' ? getPrinterCost(printerId) : {name:'Impressora', wattage:150, depreciationPerHour:1};
-    const energyPrice=parseFloat(currentSettings.energyPrice)||1; const maintenance=parseFloat(currentSettings.maintenancePerHour)||0;
+    const energyPrice=parseFloat(currentSettings.energyPrice)||1;
+    const maintenance=(typeof getMaintenancePerHour==='function')?getMaintenancePerHour():(parseFloat(currentSettings.maintenancePerHour)||0);
     const energyPerHour=(printer.wattage*energyPrice)/1000; const total=printer.depreciationPerHour+maintenance+energyPerHour;
-    el.innerHTML=`<strong>${h(printer.name)}</strong><br>Depreciação: R$ ${printer.depreciationPerHour.toFixed(2)}/h + manutenção: R$ ${maintenance.toFixed(2)}/h + energia: R$ ${energyPerHour.toFixed(2)}/h<br><strong>Custo/hora estimado: R$ ${total.toFixed(2)}/h</strong>`;
+    el.innerHTML=`<strong>${h(printer.name)}</strong><br>Depreciação: R$ ${printer.depreciationPerHour.toFixed(2)}/h + manutenção: R$ ${maintenance.toFixed(4)}/h + energia: R$ ${energyPerHour.toFixed(2)}/h<br><strong>Custo/hora estimado: R$ ${total.toFixed(2)}/h</strong>`;
 }
 
 function getHistoricalFailRate() { const printed=db.exec(`SELECT COUNT(*) FROM orders WHERE status IN ('printing','post','packaging','shipped','delivered')`); const fails=db.exec(`SELECT COUNT(*) FROM failed_prints`); const n=printed[0]?.values[0]?.[0]??0; const f=fails[0]?.values[0]?.[0]??0; return n>0?f/n:0; }

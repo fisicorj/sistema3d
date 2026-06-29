@@ -1,0 +1,18 @@
+            <div class="page-header">
+                <h1>🖨️ Impressoras</h1>
+                <p>Cadastro e parâmetros de custo de cada impressora</p>
+            </div>
+            <div class="panel-body">
+                <button class="btn-primary" onclick="showPrinterModal()" style="margin-bottom:16px;">➕ Nova Impressora</button>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th><th>Valor</th><th>Vida Útil</th><th>Consumo</th>
+                                <th>Velocidade</th><th>Custo/h (depr + energia + nozzle)</th><th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>

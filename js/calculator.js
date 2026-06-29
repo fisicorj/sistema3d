@@ -107,20 +107,47 @@ function getPrinterCost(printerId) {
     return data;
 }
 
+function getEnergyFactorFromName(name) {
+    const n = (name || '').toUpperCase();
+    if (/\bPC\b|POLICARBONATO/.test(n) || /NYLON|POLYAMIDE|\bPA\d*\b/.test(n)) return 1.40;
+    if (/\bABS\b|\bASA\b/.test(n)) return 1.30;
+    if (/PETG|\bPET\b/.test(n)) return 1.10;
+    if (/PLA\+|PLA PLUS|PLA HF/.test(n)) return 1.10;
+    return 1.00;
+}
+
 function getMaterialCost(materialId) {
-    let data = { costPerKg: 90, label: 'PLA', isAbrasive: false };
+    let data = { costPerKg: 90, label: 'PLA', isAbrasive: false, energyFactor: 1.00 };
     if (!materialId || !db) return data;
-    const r = db.exec('SELECT cost, name, color FROM materials WHERE id = ?', [materialId]);
+    const r = db.exec('SELECT cost, name, color, energy_factor FROM materials WHERE id = ?', [materialId]);
     if (r.length && r[0].values.length) {
-        const [cost, name, color] = r[0].values[0];
+        const [cost, name, color, ef] = r[0].values[0];
         const label = `${name || 'Material'} ${color || ''}`.trim();
+        const energyFactor = (ef && ef > 0) ? ef : getEnergyFactorFromName(name);
         data = {
             costPerKg: parseFloat(cost) || 90,
             label,
-            isAbrasive: /\b(CF|GF|carbon|fibra|glow|glitter|metal|bronze|copper)\b/i.test(label)
+            isAbrasive: /\b(CF|GF|carbon|fibra|glow|glitter|metal|bronze|copper)\b/i.test(label),
+            energyFactor
         };
     }
     return data;
+}
+
+function updateCalcEnergyFactorBadge() {
+    const badge = document.getElementById('calcEnergyFactorBadge');
+    if (!badge) return;
+    const sel = document.getElementById('calcMaterial');
+    const matId = sel ? parseInt(sel.value) : NaN;
+    if (!matId || isNaN(matId)) { badge.textContent = ''; return; }
+    const mat = getMaterialCost(matId);
+    if (mat.energyFactor > 1.00) {
+        badge.textContent = '⚡ fator energia ×' + mat.energyFactor.toFixed(2);
+        badge.style.color = '#b45309';
+    } else {
+        badge.textContent = '⚡ ×1.00';
+        badge.style.color = 'var(--text-muted)';
+    }
 }
 
 function getWorkTypeMinPrice(workType) {
@@ -236,6 +263,12 @@ function calculatePrice() {
     let filamentBreakdown = null;
     let materialLabel = 'PLA';
     let isAbrasive = false;
+    let energyFactor = 1.00;
+
+    // Purga manual por troca de cor
+    const colorChanges = readInt('calcColorChanges', 0);
+    const purgeCostPerChange = readNumber('calcPurgeCostPerChange', readNumberFromSettings('purgeCostPerChange', 3.00));
+    const colorChangeCost = colorChanges > 0 ? colorChanges * purgeCostPerChange : 0;
 
     if (typeof gcodeData !== 'undefined' && gcodeData && gcodeData.slots && gcodeData.slots.length > 0) {
         weight = gcodeData.totalWeight || gcodeData.slots.reduce((s, sl) => s + (parseFloat(sl.weight) || 0), 0);
@@ -249,6 +282,7 @@ function calculatePrice() {
             const slotCost = (mat.costPerKg / 1000) * slotWeight * (1 + lossRate);
             materialCost += slotCost;
             isAbrasive = isAbrasive || mat.isAbrasive;
+            energyFactor = Math.max(energyFactor, mat.energyFactor || 1.00);
             filamentBreakdown.push({
                 label: mat.label || `${slot.type || 'Material'} Slot ${slot.index || i + 1}`,
                 type: slot.type,
@@ -268,11 +302,15 @@ function calculatePrice() {
         const mat = getMaterialCost(materialId);
         materialLabel = mat.label;
         isAbrasive = mat.isAbrasive;
+        energyFactor = mat.energyFactor || 1.00;
         materialCost = (mat.costPerKg / 1000) * weight * (1 + lossRate);
     }
 
-    const maintenancePerHour = readNumberFromSettings('maintenancePerHour', 0.50);
-    const energyPerHour = (printer.wattage * energyPrice) / 1000;
+    const maintenancePerHour = (typeof getMaintenancePerHour === 'function')
+        ? getMaintenancePerHour()
+        : readNumberFromSettings('maintenancePerHour', 0.50);
+    const energyPerHourBase = (printer.wattage * energyPrice) / 1000;
+    const energyPerHour = energyPerHourBase * energyFactor;
     const depreciationPerHour = printer.depreciationPerHour;
     const machineHourCost = depreciationPerHour + maintenancePerHour + energyPerHour;
     const machineCost = machineHourCost * printTime;
@@ -301,7 +339,7 @@ function calculatePrice() {
 
     const complexityBase = laborCostRaw + serviceFees;
     const difficultyCost = Math.max(0, complexityBase * (difficulty - 1));
-    const productionCost = materialCost + purgeFilamentCost + machineCost + laborCostRaw + serviceFees + difficultyCost + packagingCost + addonsCost;
+    const productionCost = materialCost + purgeFilamentCost + colorChangeCost + machineCost + laborCostRaw + serviceFees + difficultyCost + packagingCost + addonsCost;
 
     const failRate = getEffectiveFailRate();
     const failMultiplier = failRate > 0 && failRate < 1 ? 1 / (1 - failRate) : 1;
@@ -340,7 +378,8 @@ function calculatePrice() {
         quantity, workType, workTypeLabel: getWorkTypeLabel(workType),
         weight, printTime, printTimeHuman: formatHoursHuman(printTime), materialLabel, printerName: printer.name,
         materialCost, purgeFilamentCost, filamentBreakdown,
-        energyPerHour, depreciationPerHour, maintenancePerHour, machineHourCost,
+        colorChanges, colorChangeCost, purgeCostPerChange,
+        energyFactor, energyPerHourBase, energyPerHour, depreciationPerHour, maintenancePerHour, machineHourCost,
         energyCost, depreciationCost, maintenanceCost, machineCost,
         laborCost: laborCostRaw, totalLaborMin, serviceFees,
         packagingCost, packagingWeight, addonsCost,
@@ -380,6 +419,8 @@ function updatePriceCalculation() {
     if (p.platformFeePct > 0) badges.push(`🏪 plataforma ${pct(p.platformFeePct, 0)}`);
     if (p.bulkDiscount > 0) badges.push(`🏷️ lote −${pct(p.bulkDiscount, 0)}`);
     if (p.isAbrasive) badges.push('🔩 material abrasivo');
+    if (p.energyFactor > 1.00) badges.push(`⚡ energia ×${p.energyFactor.toFixed(2)} (${p.materialLabel.split(' ')[0]})`);
+    if (p.colorChanges > 0) badges.push(`🎨 ${p.colorChanges} troca${p.colorChanges > 1 ? 's' : ''} de cor`);
 
     const badgeHtml = badges.length ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px;">${badges.map(b => `<span style="background:rgba(255,255,255,0.25);border-radius:8px;padding:2px 7px;font-size:0.75em;">${b}</span>`).join('')}</div>` : '';
 
@@ -401,7 +442,11 @@ function updatePriceCalculation() {
         rows.push(resultRow('Peso convertido', `${p.weight.toFixed(1).replace('.', ',')} g`));
         rows.push(resultRow('↳ Depreciação', money(p.depreciationCost)));
         rows.push(resultRow('↳ Manutenção', money(p.maintenanceCost)));
-        rows.push(resultRow('↳ Energia', money(p.energyCost)));
+        const energyLabel = p.energyFactor > 1.00
+            ? `↳ Energia (×${p.energyFactor.toFixed(2)} ${p.materialLabel.split(' ')[0]})`
+            : '↳ Energia';
+        rows.push(resultRow(energyLabel, money(p.energyCost)));
+        if (p.colorChanges > 0) rows.push(resultRow(`Purga (${p.colorChanges}× R$ ${p.purgeCostPerChange.toFixed(2)})`, money(p.colorChangeCost)));
         rows.push(resultRow(`Mão de obra (${p.totalLaborMin} min)`, money(p.laborCost)));
         if (p.serviceFees > 0) rows.push(resultRow('Taxas de serviço/design', money(p.serviceFees)));
         if (p.difficultyCost > 0) rows.push(resultRow(`Dificuldade ×${p.difficulty}`, money(p.difficultyCost)));
@@ -448,4 +493,17 @@ function resultRow(label, value, cls = '') {
 
 function resultDivider() {
     return '<div class="result-line" style="border-top:1px solid rgba(255,255,255,0.15);margin-top:4px;padding-top:8px;"></div>';
+}
+
+function updateCalcEnergyFactorBadge() {
+    const badge = document.getElementById('calcEnergyFactorBadge');
+    if (!badge) return;
+    const matId = document.getElementById('calcMaterial')?.value;
+    const mat = getMaterialCost(matId);
+    if (mat.energyFactor > 1.00) {
+        badge.textContent = `⚡ fator energia ×${mat.energyFactor.toFixed(2)}`;
+        badge.style.color = 'var(--warning, #f59e0b)';
+    } else {
+        badge.textContent = '';
+    }
 }
