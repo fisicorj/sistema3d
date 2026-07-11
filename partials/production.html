@@ -1,0 +1,13 @@
+<div class="page-header page-header-hero">
+  <div><span class="eyebrow">Operação em tempo real</span><h1>🏭 Produção</h1><p>Organize todos os trabalhos da aprovação até a entrega em um fluxo visual.</p></div>
+  <div class="hero-actions"><button class="btn-secondary" onclick="loadProductionBoard()">↻ Atualizar</button><button class="btn-primary" onclick="switchTab('calculator', event)">＋ Novo trabalho</button></div>
+</div>
+<div class="panel-body production-screen">
+  <div class="kpi-grid compact-kpis">
+    <div class="kpi-card primary"><span class="kpi-icon">📥</span><div><small>Aguardando</small><strong id="prodWaiting">0</strong><em>Pedidos na fila</em></div></div>
+    <div class="kpi-card warning"><span class="kpi-icon">🖨️</span><div><small>Imprimindo</small><strong id="prodPrinting">0</strong><em>Em andamento</em></div></div>
+    <div class="kpi-card neutral"><span class="kpi-icon">🧰</span><div><small>Pós-processo</small><strong id="prodPost">0</strong><em>Acabamento</em></div></div>
+    <div class="kpi-card success"><span class="kpi-icon">✅</span><div><small>Prontos</small><strong id="prodReady">0</strong><em>Para envio</em></div></div>
+  </div>
+  <div id="productionKanban" class="kanban-board"></div>
+</div>

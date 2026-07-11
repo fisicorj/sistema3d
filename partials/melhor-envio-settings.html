@@ -1,0 +1,53 @@
+            <div class="page-header">
+                <h1>🚚 Melhor Envio</h1>
+                <p>Configure sua integração para cotar frete pelo CEP usando o servidor local.</p>
+            </div>
+            <div class="panel-body">
+                <div class="form-grid">
+                    <div class="form-card">
+                        <h3>🔑 Dados da integração</h3>
+                        <p style="font-size:0.85em;color:var(--text-muted);margin-bottom:12px;">
+                            O token fica salvo somente neste computador. Para funcionar, abra o sistema pelo <code>server.py</code>, <code>iniciar.sh</code> ou <code>iniciar_windows.bat</code>, não direto pelo arquivo HTML.
+                        </p>
+                        <div class="field-group">
+                            <label><input type="checkbox" id="meEnabled2"> Ativar integração Melhor Envio</label>
+                        </div>
+                        <div class="field-group">
+                            <label>Ambiente</label>
+                            <select id="meEnvironment2">
+                                <option value="production">Produção</option>
+                                <option value="sandbox">Sandbox/Testes</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>CEP de origem</label>
+                            <input type="text" id="meOriginCep2" placeholder="Ex.: 09080-510" maxlength="9">
+                        </div>
+                        <div class="field-group">
+                            <label>Access Token / Bearer Token</label>
+                            <input type="password" id="meAccessToken2" placeholder="Cole o token aqui" autocomplete="off">
+                            <small>Depois de salvo, o token não aparece novamente. Para trocar, cole outro token e salve.</small>
+                        </div>
+                        <div class="field-group">
+                            <label>Serviços específicos (opcional)</label>
+                            <input type="text" id="meServices2" placeholder="Ex.: 1,2,3 — vazio consulta todos">
+                        </div>
+                        <div class="field-group">
+                            <label>User-Agent / identificação</label>
+                            <input type="text" id="meUserAgent2" placeholder="Sistema3D Local (seu-email@exemplo.com)">
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="btn-primary" onclick="saveMelhorEnvioConfig()">💾 Salvar Melhor Envio</button>
+                            <button type="button" class="btn-warning" onclick="loadMelhorEnvioConfig()">↻ Recarregar</button>
+                        </div>
+                        <small id="meConfigStatus2">Carregando configuração...</small>
+                    </div>
+                    <div class="form-card">
+                        <h3>📦 Como usar na calculadora</h3>
+                        <p style="font-size:0.9em;color:var(--text-muted);line-height:1.55;">
+                            Na calculadora, informe o CEP de destino, peso/dimensões da caixa e clique em <strong>Cotar Melhor Envio</strong>. Se a API falhar, o sistema volta para a tabela local de frete por UF.
+                        </p>
+                        <button type="button" class="btn-primary" onclick="switchTab('calculator')">Ir para Calculadora</button>
+                    </div>
+                </div>
+            </div>

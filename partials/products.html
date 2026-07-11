@@ -1,0 +1,23 @@
+<div class="page-header page-header-hero">
+    <div>
+        <span class="eyebrow">Catálogo</span>
+        <h1>🏷️ Produtos</h1>
+        <p>Organize seus produtos prontos para venda direta, Shopee, Mercado Livre e outros canais.</p>
+    </div>
+    <div class="hero-actions">
+        <button class="btn-secondary" onclick="saveCalculationAsProduct()">🧮 Usar cálculo atual</button>
+        <button class="btn-primary" onclick="showProductModal()">➕ Novo Produto</button>
+    </div>
+</div>
+<div class="panel-body products-screen">
+    <div class="toolbar-card">
+        <div class="toolbar-search">
+            <span>🔎</span>
+            <input type="text" id="productSearch" placeholder="Pesquisar por produto, SKU ou categoria" oninput="loadProducts()">
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn-warning" onclick="exportProductsToCSV()">📎 Exportar CSV</button>
+        </div>
+    </div>
+    <div id="productsList"></div>
+</div>
