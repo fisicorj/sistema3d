@@ -1,13 +1,5 @@
 // ==================== CALCULADORA DE PREÇO ====================
 
-function money(v) {
-    return 'R$ ' + (Number(v || 0)).toFixed(2).replace('.', ',');
-}
-
-function pct(v, casas = 1) {
-    return (Number(v || 0) * 100).toFixed(casas) + '%';
-}
-
 function switchCalcTab(name, btn) {
     document.querySelectorAll('.calc-tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.calc-tab-btn').forEach(b => b.classList.remove('active'));
@@ -132,22 +124,6 @@ function getMaterialCost(materialId) {
         };
     }
     return data;
-}
-
-function updateCalcEnergyFactorBadge() {
-    const badge = document.getElementById('calcEnergyFactorBadge');
-    if (!badge) return;
-    const sel = document.getElementById('calcMaterial');
-    const matId = sel ? parseInt(sel.value) : NaN;
-    if (!matId || isNaN(matId)) { badge.textContent = ''; return; }
-    const mat = getMaterialCost(matId);
-    if (mat.energyFactor > 1.00) {
-        badge.textContent = '⚡ fator energia ×' + mat.energyFactor.toFixed(2);
-        badge.style.color = '#b45309';
-    } else {
-        badge.textContent = '⚡ ×1.00';
-        badge.style.color = 'var(--text-muted)';
-    }
 }
 
 function getWorkTypeMinPrice(workType) {

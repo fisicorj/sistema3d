@@ -38,19 +38,19 @@ function showAddonModal(id = null) {
 
     document.getElementById('modalTitle').textContent = id ? 'Editar Adicional' : 'Novo Adicional';
     document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
+        <div class="field-group">
             <label>Nome do adicional</label>
             <input type="text" id="addonName" value="${h(name)}" placeholder="Ex: Corrente de chaveiro">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Categoria</label>
             <select id="addonCategory">${catOptions}</select>
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Custo unitário (R$)</label>
             <input type="number" id="addonCost" value="${unit_cost}" min="0" step="0.10" placeholder="0.00">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Descrição</label>
             <input type="text" id="addonDesc" value="${h(description)}" placeholder="Detalhes opcionais">
         </div>

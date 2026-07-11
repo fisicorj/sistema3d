@@ -1,0 +1,19 @@
+<div class="page-header page-header-hero">
+  <div><span class="eyebrow">Saúde do negócio</span><h1>💰 Financeiro</h1><p>Receitas, despesas, resultado líquido, margem e contas pendentes em um só lugar.</p></div>
+  <div class="hero-actions"><button class="btn-secondary" onclick="switchTab('expenses', event)">💸 Registrar despesa</button><button class="btn-primary" onclick="loadFinanceDashboard()">↻ Atualizar</button></div>
+</div>
+<div class="panel-body finance-screen">
+  <div class="toolbar-card finance-filter"><div class="toolbar-filter"><label>Período</label><input type="month" id="financeMonth" onchange="loadFinanceDashboard()"></div><div class="toolbar-actions"><button class="btn-secondary" onclick="switchTab('reports', event)">📈 Relatório completo</button></div></div>
+  <div class="kpi-grid">
+    <div class="kpi-card primary"><span class="kpi-icon">💵</span><div><small>Receita</small><strong id="finRevenue">R$ 0</strong><em>Pedidos válidos</em></div></div>
+    <div class="kpi-card danger"><span class="kpi-icon">💸</span><div><small>Despesas</small><strong id="finExpenses">R$ 0</strong><em>Custos lançados</em></div></div>
+    <div class="kpi-card success"><span class="kpi-icon">📈</span><div><small>Resultado</small><strong id="finNet">R$ 0</strong><em>Receita menos despesas</em></div></div>
+    <div class="kpi-card warning"><span class="kpi-icon">🧾</span><div><small>A receber</small><strong id="finReceivable">R$ 0</strong><em>Saldo de pedidos</em></div></div>
+      <div class="kpi-card info"><span class="kpi-icon">🏪</span><div><small>Consignação</small><strong id="finConsignment">R$ 0</strong><em>Seu valor no período</em></div></div>
+  </div>
+  <div class="dashboard-grid">
+    <div class="modern-card"><div class="section-title"><div><span>📊</span><strong>Composição financeira</strong></div><small>Comparativo do período</small></div><div id="financeBars" class="finance-bars"></div></div>
+    <div class="modern-card"><div class="section-title"><div><span>🎯</span><strong>Indicadores</strong></div><small>Eficiência do negócio</small></div><div id="financeIndicators" class="metric-list"></div></div>
+  </div>
+  <div class="modern-card" style="margin-top:16px"><div class="section-title"><div><span>🧾</span><strong>Pedidos com saldo pendente</strong></div><small>Prioridade de cobrança</small></div><div id="financePending"></div></div>
+</div>

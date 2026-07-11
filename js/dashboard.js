@@ -6,6 +6,7 @@ function updateDashboard() {
     renderMonthlyGoal();
     renderDelayedOrders();
     if (typeof loadProducts === 'function') loadProducts();
+    if (typeof fetch === 'function') fetch('/api/relational/consignments-summary',{cache:'no-store'}).then(r=>r.json()).then(s=>{if(typeof updateConsignmentDashboard==='function')updateConsignmentDashboard(s)}).catch(()=>{});
 }
 
 function renderSalesByTypeChart() {
@@ -102,11 +103,20 @@ function updateStatsBar() {
     const failRate = total > 0 ? ((fails / total) * 100).toFixed(1) : '0.0';
 
     const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    setText('monthlyRevenue', `R$ ${(revenue || 0).toFixed(0)}`);
-    setText('monthlyProfit',  `R$ ${(profit  || 0).toFixed(0)}`);
+    const revenueText = `R$ ${(revenue || 0).toFixed(0)}`;
+    const profitText  = `R$ ${(profit  || 0).toFixed(0)}`;
+    setText('monthlyRevenue', revenueText);
+    setText('monthlyProfit',  profitText);
     setText('monthlyOrders',  orderCount);
     setText('topProduct',     topName);
     setText('failRate',       `${failRate}%`);
+    setText('dashMonthlyRevenue', revenueText);
+    setText('dashMonthlyProfit',  profitText);
+    setText('dashMonthlyOrders',  orderCount);
+    setText('dashOrdersMirror',   orderCount);
+    setText('dashProfitMirror',   profitText);
+    setText('dashTopProduct',     topName);
+    setText('dashFailRate',       `${failRate}%`);
 }
 
 function renderMonthlyGoal() {
@@ -163,24 +173,22 @@ function renderDelayedOrders() {
     }
     panel.style.display = '';
 
-    const workTypeNames = { simple:'Brinde Simples', personalized:'Personalizado', technical:'Técnica', custom:'Sob Medida' };
-    const statusNames   = { quote:'Orçamento', approved:'Aprovado', paid:'Pago', printing:'Imprimindo',
-        post:'Pós-proc.', packaging:'Embalagem', shipped:'Enviado' };
-
     let html = '';
     rows[0].values.forEach(([id, wt, status, date, clientName, phone, email, dias]) => {
         const phoneClean = (phone || '').replace(/\D/g, '');
-        const msg = encodeURIComponent(`Olá${clientName ? ' ' + clientName : ''}! Tudo bem? Passando para atualizar sobre seu pedido #${id} de ${workTypeNames[wt]||wt}. Ele está atualmente em: ${statusNames[status]||status}. Qualquer dúvida, estou à disposição!`);
+        const wtLabel  = typeof getWorkTypeLabel === 'function' ? getWorkTypeLabel(wt) : wt;
+        const stLabel  = (typeof STATUS_NAMES !== 'undefined' && STATUS_NAMES[status]) || status;
+        const msg = encodeURIComponent(`Olá${clientName ? ' ' + clientName : ''}! Tudo bem? Passando para atualizar sobre seu pedido #${id} de ${wtLabel}. Ele está atualmente em: ${stLabel}. Qualquer dúvida, estou à disposição!`);
         const waBtn  = phoneClean
             ? `<a href="https://wa.me/55${phoneClean}?text=${msg}" target="_blank" rel="noopener" class="btn-primary btn-sm" style="text-decoration:none;">💬 WhatsApp</a>` : '';
         const mailBtn = email
-            ? `<a href="mailto:${h(email)}?subject=Atualização%20pedido%20%23${id}&body=${encodeURIComponent(`Olá${clientName ? ' ' + clientName : ''}!\n\nSeu pedido #${id} está em: ${statusNames[status]||status}.\n\nQualquer dúvida, estou à disposição!`)}" class="btn-info btn-sm" style="text-decoration:none;">📧 E-mail</a>` : '';
+            ? `<a href="mailto:${h(email)}?subject=Atualização%20pedido%20%23${id}&body=${encodeURIComponent(`Olá${clientName ? ' ' + clientName : ''}!\n\nSeu pedido #${id} está em: ${stLabel}.\n\nQualquer dúvida, estou à disposição!`)}" class="btn-info btn-sm" style="text-decoration:none;">📧 E-mail</a>` : '';
 
         html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;
                               padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
             <div>
-                <strong>#${id}</strong> — ${workTypeNames[wt]||wt}
-                <span style="font-size:0.8em;color:var(--text-muted);margin-left:6px;">${statusNames[status]||status}</span><br>
+                <strong>#${id}</strong> — ${wtLabel}
+                <span style="font-size:0.8em;color:var(--text-muted);margin-left:6px;">${stLabel}</span><br>
                 <span style="font-size:0.82em;">👤 ${h(clientName||'Sem cliente')} · ⏰ ${dias} dias sem atualização</span>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${waBtn}${mailBtn}</div>
@@ -208,12 +216,12 @@ function updateAlertSystem() {
         `SELECT COUNT(*) FROM orders
          WHERE status NOT IN ('delivered','cancelled')
          AND deleted_at IS NULL
-         AND julianday('now') - julianday(date) > 7`
+         AND julianday('now') - julianday(date) > ${Math.max(1, Number(currentSettings?.alertDays || 7))}`
     );
     const delayedCount = delayed[0]?.values[0]?.[0] ?? 0;
     if (delayedCount > 0) {
         html += `<div class="alert-warning">
-            ⏰ ${delayedCount} pedido(s) com mais de 7 dias sem conclusão
+            ⏰ ${delayedCount} pedido(s) com mais de ${Math.max(1, Number(currentSettings?.alertDays || 7))} dias sem conclusão
         </div>`;
     }
 

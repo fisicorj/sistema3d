@@ -1,6 +1,40 @@
+// Relatórios calculados no backend relacional (SQLite/PostgreSQL/SQL Server).
+async function generateReport() {
+    const startMonth = document.getElementById('reportStartMonth').value;
+    const endMonth = document.getElementById('reportEndMonth').value;
+    if (!startMonth || !endMonth) { showToast('⚠️ Selecione o período'); return; }
+    if (startMonth > endMonth) { showToast('⚠️ Data inicial deve ser anterior à final'); return; }
+    try {
+        const url = `/api/relational/reports?start=${encodeURIComponent(startMonth)}&end=${encodeURIComponent(endMonth)}`;
+        const response = await fetch(url, {cache:'no-store'});
+        const data = await response.json();
+        if (!response.ok || data.ok === false) throw new Error(data.error || `HTTP ${response.status}`);
+        renderRelationalReport(data, startMonth, endMonth);
+    } catch (error) {
+        console.warn('[Relatórios] fallback local:', error);
+        generateReportLocal();
+    }
+}
+
+function renderRelationalReport(data, startMonth, endMonth) {
+    const t=data.totals||{}; const revenue=Number(t.revenue||0), profit=Number(t.profit||0), count=Number(t.orders||0);
+    const margin=revenue ? profit/revenue*100 : 0; const expMap=Object.fromEntries((data.expenses_monthly||[]).map(x=>[x.month,Number(x.amount||0)]));
+    const totalExpenses=Object.values(expMap).reduce((a,b)=>a+b,0); const net=revenue-totalExpenses;
+    let html=`<div class="row g-3 mb-4">${[
+      ['Faturamento',money(revenue)],['Lucro bruto',money(profit)],['Margem',margin.toFixed(1)+'%'],['Pedidos',count],['Ticket médio',money(t.average_ticket||0)],['Resultado líquido',money(net)]
+    ].map(([l,v])=>`<div class="col-6 col-lg-2"><div class="card h-100 shadow-sm border-0"><div class="card-body"><small class="text-body-secondary">${l}</small><div class="fs-5 fw-bold mt-1">${v}</div></div></div></div>`).join('')}</div>`;
+    const monthly=data.monthly||[];
+    if(monthly.length){ html+=`<div class="card border-0 shadow-sm mb-4"><div class="card-header bg-transparent"><strong>Evolução mensal</strong><small class="text-body-secondary ms-2">Banco: ${h(data.engine||'')}</small></div><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Mês</th><th>Pedidos</th><th>Receita</th><th>Despesas</th><th>Lucro</th><th>Resultado</th></tr></thead><tbody>${monthly.map(x=>{const e=expMap[x.month]||0;return `<tr><td>${h(x.month)}</td><td>${x.orders}</td><td>${money(x.revenue)}</td><td>${money(e)}</td><td>${money(x.profit)}</td><td class="fw-semibold ${x.revenue-e>=0?'text-success':'text-danger'}">${money(x.revenue-e)}</td></tr>`}).join('')}</tbody></table></div></div>`; }
+    const table=(title,heads,rows)=>rows.length?`<div class="card border-0 shadow-sm mb-4"><div class="card-header bg-transparent"><strong>${title}</strong></div><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr>${heads.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`:'';
+    html+=table('Por tipo de trabalho',['Tipo','Pedidos','Receita','Lucro'],(data.by_type||[]).map(x=>`<tr><td>${h(getWorkTypeLabel(x.type))}</td><td>${x.orders}</td><td>${money(x.revenue)}</td><td>${money(x.profit)}</td></tr>`));
+    html+=`<div class="row g-4"><div class="col-lg-6">${table('Top clientes',['Cliente','Pedidos','Total'],(data.top_clients||[]).map(x=>`<tr><td>${h(x.name)}</td><td>${x.orders}</td><td>${money(x.total)}</td></tr>`))}</div><div class="col-lg-6">${table('Materiais mais usados',['Material','Peso','Pedidos'],(data.top_materials||[]).map(x=>`<tr><td>${h(x.name)}</td><td>${formatDecimal(x.grams)} g</td><td>${x.orders}</td></tr>`))}</div></div>`;
+    html+=`<div class="mt-3"><button class="btn btn-primary" onclick="exportReportCSV('${startMonth}','${endMonth}')">Exportar CSV completo</button></div>`;
+    document.getElementById('reportResult').innerHTML=html;
+}
+
 // ==================== RELATÓRIOS ====================
 
-function generateReport() {
+function generateReportLocal() {
     const startMonth = document.getElementById('reportStartMonth').value;
     const endMonth   = document.getElementById('reportEndMonth').value;
 
@@ -67,11 +101,11 @@ function generateReport() {
 
     // Cards de resumo
     html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;">
-        ${statCard('Faturamento', 'R$ ' + fmt2(revenue))}
-        ${statCard('Lucro Bruto', 'R$ ' + fmt2(profit))}
+        ${statCard('Faturamento', 'R$ ' + formatDecimal(revenue))}
+        ${statCard('Lucro Bruto', 'R$ ' + formatDecimal(profit))}
         ${statCard('Margem Média', margin + '%')}
         ${statCard('Pedidos', count)}
-        ${statCard('Ticket Médio', 'R$ ' + fmt2(avgTicket))}
+        ${statCard('Ticket Médio', 'R$ ' + formatDecimal(avgTicket))}
     </div>`;
 
     // Gráfico de evolução mensal
@@ -85,7 +119,7 @@ function generateReport() {
             const mg = fat > 0 ? ((luc/fat)*100).toFixed(0) : 0;
             html += `<div style="display:flex;flex-direction:column;align-items:center;min-width:54px;">
                 <div style="font-size:0.65em;color:var(--text-muted);margin-bottom:2px;">R$${Math.round(fat||0)}</div>
-                <div title="Fat: R$ ${fmt2(fat)} | Lucro: R$ ${fmt2(luc)} | Margem: ${mg}% | ${qtd} pedidos"
+                <div title="Fat: R$ ${formatDecimal(fat)} | Lucro: R$ ${formatDecimal(luc)} | Margem: ${mg}% | ${qtd} pedidos"
                      style="background:var(--primary,#00AE42);width:40px;height:${h}px;border-radius:4px 4px 0 0;cursor:default;"></div>
                 <div style="font-size:0.65em;margin-top:4px;color:var(--text-muted);">${mes.slice(5)}</div>
             </div>`;
@@ -98,20 +132,19 @@ function generateReport() {
           <thead><tr><th>Mês</th><th>Pedidos</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead><tbody>`;
         rows.forEach(([mes, fat, luc, qtd]) => {
             const mg = fat > 0 ? ((luc/fat)*100).toFixed(1) : '0.0';
-            html += `<tr><td>${mes}</td><td>${qtd}</td><td>R$ ${fmt2(fat)}</td><td>R$ ${fmt2(luc)}</td><td>${mg}%</td></tr>`;
+            html += `<tr><td>${mes}</td><td>${qtd}</td><td>R$ ${formatDecimal(fat)}</td><td>R$ ${formatDecimal(luc)}</td><td>${mg}%</td></tr>`;
         });
         html += `</tbody></table></div>`;
     }
 
     // Por tipo de trabalho
     if (byType.length > 0 && byType[0].values.length > 0) {
-        const typeNames = { simple:'Brinde Simples', personalized:'Personalizado', technical:'Técnica', custom:'Sob Medida' };
         html += `<h4 style="margin:20px 0 8px;">🏷️ Por Tipo de Trabalho</h4>
         <div class="table-container"><table style="font-size:0.85em;">
           <thead><tr><th>Tipo</th><th>Pedidos</th><th>Faturamento</th><th>Lucro</th><th>Margem</th></tr></thead><tbody>`;
         byType[0].values.forEach(([type, qty, total, lucro]) => {
             const mg = total > 0 ? ((lucro/total)*100).toFixed(1) : '0.0';
-            html += `<tr><td>${typeNames[type]||type}</td><td>${qty}</td><td>R$ ${fmt2(total)}</td><td>R$ ${fmt2(lucro)}</td><td>${mg}%</td></tr>`;
+            html += `<tr><td>${typeof getWorkTypeLabel === 'function' ? getWorkTypeLabel(type) : h(type)}</td><td>${qty}</td><td>R$ ${formatDecimal(total)}</td><td>R$ ${formatDecimal(lucro)}</td><td>${mg}%</td></tr>`;
         });
         html += `</tbody></table></div>`;
     }
@@ -122,7 +155,7 @@ function generateReport() {
         <div class="table-container"><table style="font-size:0.85em;">
           <thead><tr><th>Material</th><th>Pedidos</th><th>Faturamento</th></tr></thead><tbody>`;
         topMaterials[0].values.forEach(([name, qty, total]) => {
-            html += `<tr><td>${h(name)}</td><td>${qty}</td><td>R$ ${fmt2(total)}</td></tr>`;
+            html += `<tr><td>${h(name)}</td><td>${qty}</td><td>R$ ${formatDecimal(total)}</td></tr>`;
         });
         html += `</tbody></table></div>`;
     }
@@ -133,7 +166,7 @@ function generateReport() {
         <div class="table-container"><table style="font-size:0.85em;">
           <thead><tr><th>Cliente</th><th>Pedidos</th><th>Faturamento</th></tr></thead><tbody>`;
         topClients[0].values.forEach(([nome, qty, total]) => {
-            html += `<tr><td>${h(nome)}</td><td>${qty}</td><td>R$ ${fmt2(total)}</td></tr>`;
+            html += `<tr><td>${h(nome)}</td><td>${qty}</td><td>R$ ${formatDecimal(total)}</td></tr>`;
         });
         html += `</tbody></table></div>`;
     }
@@ -148,9 +181,9 @@ function generateReport() {
 
         html += `<h4 style="margin:24px 0 10px;">💰 Fluxo de Caixa</h4>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px;">
-            ${statCard('Receita', 'R$ '+fmt2(revenue))}
-            ${statCard('Despesas', 'R$ '+fmt2(totalExpenses))}
-            ${statCard('Resultado', `<span style="color:${netColor};">R$ ${fmt2(netResult)}</span>`)}
+            ${statCard('Receita', 'R$ '+formatDecimal(revenue))}
+            ${statCard('Despesas', 'R$ '+formatDecimal(totalExpenses))}
+            ${statCard('Resultado', `<span style="color:${netColor};">R$ ${formatDecimal(netResult)}</span>`)}
         </div>`;
 
         // Comparativo mensal receita vs despesas
@@ -167,9 +200,9 @@ function generateReport() {
                 const clr = net >= 0 ? '#38a169' : '#e53e3e';
                 html += `<tr>
                     <td>${mes}</td>
-                    <td>R$ ${fmt2(fat)}</td>
-                    <td>R$ ${fmt2(exp)}</td>
-                    <td style="color:${clr};font-weight:700;">R$ ${fmt2(net)}</td>
+                    <td>R$ ${formatDecimal(fat)}</td>
+                    <td>R$ ${formatDecimal(exp)}</td>
+                    <td style="color:${clr};font-weight:700;">R$ ${formatDecimal(net)}</td>
                 </tr>`;
             });
             html += `</tbody></table></div>`;
@@ -185,7 +218,6 @@ function generateReport() {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function fmt2(v) { return (Number(v)||0).toFixed(2).replace('.',','); }
 
 function statCard(label, value) {
     return `<div class="stat-card" style="padding:10px;text-align:center;">

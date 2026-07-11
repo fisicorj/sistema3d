@@ -87,16 +87,16 @@ function showEditPrinterModal(printerId) {
 
 function printerFormHTML(data = {}) {
     return `
-        <div class="input-group"><label>Nome</label>
+        <div class="field-group"><label>Nome</label>
             <input type="text" id="printerName" value="${h(data.name || '')}" placeholder="Ex: Ender 3"></div>
-        <div class="input-group"><label>Valor de compra (R$)</label>
+        <div class="field-group"><label>Valor de compra (R$)</label>
             <input type="number" id="printerValue" value="${data.value ?? 2000}" oninput="updatePrinterCostPreview()"></div>
-        <div class="input-group"><label>Vida Útil Estimada (horas)
+        <div class="field-group"><label>Vida Útil Estimada (horas)
             <small style="font-weight:400;color:var(--text-dim);">— tempo total de impressão até obsolescência</small></label>
             <input type="number" id="printerLifetime" value="${data.lifetime ?? 5000}" oninput="updatePrinterCostPreview()"></div>
-        <div class="input-group"><label>Consumo Médio (Watts)</label>
+        <div class="field-group"><label>Consumo Médio (Watts)</label>
             <input type="number" id="printerWattage" value="${data.wattage ?? 150}" oninput="updatePrinterCostPreview()"></div>
-        <div class="input-group"><label>Velocidade Média de impressão (g/h)</label>
+        <div class="field-group"><label>Velocidade Média de impressão (g/h)</label>
             <input type="number" id="printerSpeed" value="${data.speed ?? 15}"></div>
         <div class="info-box" id="printerCostPreview" style="margin-bottom:12px;font-size:0.83em;line-height:1.8;"></div>
         <button class="btn-primary" onclick="savePrinter(false)" style="width:100%;margin-top:4px;">Salvar Impressora</button>

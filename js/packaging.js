@@ -33,19 +33,19 @@ function showPackagingModal(id = null) {
     }
     document.getElementById('modalTitle').textContent = id ? 'Editar Embalagem' : 'Nova Embalagem';
     document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
+        <div class="field-group">
             <label>Nome da embalagem</label>
             <input type="text" id="pkgName" value="${h(name)}" placeholder="Ex: Caixinha kraft M">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Descrição</label>
             <input type="text" id="pkgDesc" value="${h(description)}" placeholder="Detalhes opcionais">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Custo (R$)</label>
             <input type="number" id="pkgCost" value="${cost}" min="0" step="0.10" placeholder="0.00">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Peso da embalagem (g)</label>
             <input type="number" id="pkgWeight" value="${weight}" min="0" step="1" placeholder="0">
             <small>Somado ao peso da peça para cálculo de frete</small>

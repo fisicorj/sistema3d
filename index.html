@@ -1,194 +1,220 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+
+<html data-bs-theme="light" lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#00AE42">
-    <title>3D Print Pro — Gestão de Custos</title>
-    <link rel="stylesheet" href="css/styles.css">
-</head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="#0d6efd" name="theme-color"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="assets/icon-192.png"/>
+<title>3D Print Pro — Gestão de Custos</title>
+<link href="css/styles.css" rel="stylesheet"/>
+<link href="css/phase2.css" rel="stylesheet"/>
+<link href="css/phase3-radar.css?v=4.0.0" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"/><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet"/><link href="css/bootstrap-app.css?v=8.0.0" rel="stylesheet"/></head>
 <body>
-
 <div class="app">
-
-    <!-- ═══════════════ SIDEBAR ═══════════════ -->
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <span class="logo-icon">🖨️</span>
-            <div>
-                <div class="logo-name">3D Print Pro</div>
-                <div class="logo-sub">Gestão de Impressão 3D</div>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav">
-            <div class="nav-label">Principal</div>
-            <button class="nav-item tab-btn active" onclick="switchTab('dashboard', event)">
-                <span class="nav-icon">📊</span><span>Dashboard</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('calculator', event)">
-                <span class="nav-icon">🧮</span><span>Calculadora</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('products', event)">
-                <span class="nav-icon">🏷️</span><span>Produtos</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('orders', event)">
-                <span class="nav-icon">📦</span><span>Pedidos</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('quotes', event)">
-                <span class="nav-icon">📋</span><span>Orçamentos</span>
-            </button>
-
-            <div class="nav-label">Gestão</div>
-            <button class="nav-item tab-btn" onclick="switchTab('clients', event)">
-                <span class="nav-icon">👥</span><span>Clientes</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('inventory', event)">
-                <span class="nav-icon">🧱</span><span>Materiais</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('printers', event)">
-                <span class="nav-icon">🖨️</span><span>Impressoras</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('maintenance', event)">
-                <span class="nav-icon">🔧</span><span>Manutenção</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('packaging', event)">
-                <span class="nav-icon">📦</span><span>Embalagens</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('addons', event)">
-                <span class="nav-icon">⭐</span><span>Adicionais</span>
-            </button>
-
-            <div class="nav-label">Ferramentas</div>
-            <button class="nav-item tab-btn" onclick="switchTab('expenses', event)">
-                <span class="nav-icon">💸</span><span>Despesas</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('reports', event)">
-                <span class="nav-icon">📈</span><span>Relatórios</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('marketplaces', event)">
-                <span class="nav-icon">🛒</span><span>Marketplaces</span>
-            </button>
-
-            <div class="nav-label">Sistema</div>
-            <button class="nav-item tab-btn" onclick="switchTab('settings', event)">
-                <span class="nav-icon">⚙️</span><span>Configurações</span>
-            </button>
-            <button class="nav-item tab-btn" onclick="switchTab('melhor-envio-settings', event)">
-                <span class="nav-icon">🚚</span><span>Melhor Envio</span>
-            </button>
-        </nav>
-
-        <!-- Mini stats no fundo da sidebar -->
-        <div class="sidebar-stats">
-            <div class="sstat">
-                <span class="sstat-label">Faturamento</span>
-                <span class="sstat-val" id="monthlyRevenue">R$ 0</span>
-            </div>
-            <div class="sstat">
-                <span class="sstat-label">Lucro</span>
-                <span class="sstat-val" id="monthlyProfit">R$ 0</span>
-            </div>
-            <div class="sstat">
-                <span class="sstat-label">Pedidos</span>
-                <span class="sstat-val" id="monthlyOrders">0</span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- ═══════════════ MAIN ═══════════════ -->
-    <main class="main">
-
-        <!-- ===== DASHBOARD ===== -->
-        <div id="dashboard" class="tab-panel active" data-partial="partials/dashboard.html"></div>
-
-        <!-- ===== CALCULADORA ===== -->
-        <div id="calculator" class="tab-panel" data-partial="partials/calculator.html"></div>
-
-        <!-- ===== PRODUTOS ===== -->
-        <div id="products" class="tab-panel" data-partial="partials/products.html"></div>
-
-        <!-- ===== PEDIDOS ===== -->
-        <div id="orders" class="tab-panel" data-partial="partials/orders.html"></div>
-
-        <!-- ===== ORÇAMENTOS ===== -->
-        <div id="quotes" class="tab-panel" data-partial="partials/quotes.html"></div>
-
-        <!-- ===== CLIENTES ===== -->
-        <div id="clients" class="tab-panel" data-partial="partials/clients.html"></div>
-
-        <!-- ===== MATERIAIS (ESTOQUE) ===== -->
-        <div id="inventory" class="tab-panel" data-partial="partials/inventory.html"></div>
-
-        <!-- ===== MANUTENÇÃO ===== -->
-        <div id="maintenance" class="tab-panel" data-partial="partials/maintenance.html"></div>
-
-        <!-- ===== IMPRESSORAS ===== -->
-        <div id="printers" class="tab-panel" data-partial="partials/printers.html"></div>
-
-        <!-- ===== EMBALAGENS ===== -->
-        <div id="packaging" class="tab-panel" data-partial="partials/packaging.html"></div>
-
-        <!-- ===== ADICIONAIS ===== -->
-        <div id="addons" class="tab-panel" data-partial="partials/addons.html"></div>
-
-        <!-- ===== DESPESAS ===== -->
-        <div id="expenses" class="tab-panel" data-partial="partials/expenses.html"></div>
-
-        <!-- ===== RELATÓRIOS ===== -->
-        <div id="reports" class="tab-panel" data-partial="partials/reports.html"></div>
-
-        <!-- ===== MARKETPLACES ===== -->
-        <div id="marketplaces" class="tab-panel" data-partial="partials/marketplaces.html"></div>
-
-        <!-- ===== CONFIGURAÇÕES ===== -->
-        <div id="settings" class="tab-panel" data-partial="partials/settings.html"></div>
-
-        <!-- ===== MELHOR ENVIO ===== -->
-        <div id="melhor-envio-settings" class="tab-panel" data-partial="partials/melhor-envio-settings.html"></div>
-
-    </main><!-- /main -->
-</div><!-- /app -->
-
-<!-- Modal genérico -->
-<div id="modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="modalTitle">Título</h3>
-            <span class="close-modal" onclick="closeModal()">&times;</span>
-        </div>
-        <div id="modalBody"></div>
-    </div>
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+<div class="sidebar-logo">
+<span class="logo-icon"><i class="bi bi-printer-fill"></i></span>
+<div>
+<div class="logo-name">3D Print Pro</div>
+<div class="logo-sub">Gestão de Impressão 3D</div>
 </div>
-
+</div>
+<nav class="sidebar-nav">
+<div class="nav-label">Principal</div>
+<button class="nav-item tab-btn active" onclick="switchTab('dashboard', event)">
+<span class="nav-icon"><i class="bi bi-speedometer2"></i></span><span>Dashboard</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('calculator', event)">
+<span class="nav-icon"><i class="bi bi-calculator"></i></span><span>Calculadora</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('products', event)">
+<span class="nav-icon"><i class="bi bi-box-seam"></i></span><span>Produtos</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('orders', event)">
+<span class="nav-icon"><i class="bi bi-bag-check"></i></span><span>Pedidos</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('production', event)">
+<span class="nav-icon"><i class="bi bi-gear-wide-connected"></i></span><span>Produção</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('quotes', event)">
+<span class="nav-icon"><i class="bi bi-file-earmark-text"></i></span><span>Orçamentos</span>
+</button>
+<div class="nav-label">Gestão</div>
+<button class="nav-item tab-btn" onclick="switchTab('clients', event)">
+<span class="nav-icon"><i class="bi bi-people"></i></span><span>Clientes</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('inventory', event)">
+<span class="nav-icon"><i class="bi bi-boxes"></i></span><span>Materiais</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('printers', event)">
+<span class="nav-icon"><i class="bi bi-printer"></i></span><span>Impressoras</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('maintenance', event)">
+<span class="nav-icon"><i class="bi bi-tools"></i></span><span>Manutenção</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('packaging', event)">
+<span class="nav-icon"><i class="bi bi-box2"></i></span><span>Embalagens</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('addons', event)">
+<span class="nav-icon"><i class="bi bi-stars"></i></span><span>Adicionais</span>
+</button>
+<div class="nav-label">Ferramentas</div>
+<button class="nav-item tab-btn" onclick="switchTab('consignments', event)">
+<span class="nav-icon"><i class="bi bi-arrow-left-right"></i></span><span>Consignações</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('finance', event)">
+<span class="nav-icon"><i class="bi bi-cash-coin"></i></span><span>Financeiro</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('expenses', event)">
+<span class="nav-icon"><i class="bi bi-receipt"></i></span><span>Despesas</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('reports', event)">
+<span class="nav-icon"><i class="bi bi-graph-up-arrow"></i></span><span>Relatórios</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('marketplaces', event)">
+<span class="nav-icon"><i class="bi bi-shop"></i></span><span>Marketplaces</span>
+</button>
+<button class="nav-item tab-btn" onclick="switchTab('insights', event); loadInsights()">
+<span class="nav-icon"><i class="bi bi-radar"></i></span><span>Radar de Produtos</span>
+</button>
+<div class="nav-label">Sistema</div>
+<button class="nav-item tab-btn" onclick="switchTab('settings', event); if(typeof loadEtsyConfig==='function') loadEtsyConfig(); if(typeof loadMlConfig==='function') loadMlConfig()">
+<span class="nav-icon"><i class="bi bi-sliders2"></i></span><span>Configurações</span>
+</button>
+</nav>
+<!-- Mini stats no fundo da sidebar -->
+<div class="sidebar-stats">
+<div class="sstat">
+<span class="sstat-label">Faturamento</span>
+<span class="sstat-val" id="monthlyRevenue">R$ 0</span>
+</div>
+<div class="sstat">
+<span class="sstat-label">Lucro</span>
+<span class="sstat-val" id="monthlyProfit">R$ 0</span>
+</div>
+<div class="sstat">
+<span class="sstat-label">Pedidos</span>
+<span class="sstat-val" id="monthlyOrders">0</span>
+</div>
+</div>
+</aside>
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main"><header class="app-topbar">
+<div class="topbar-left">
+<button aria-label="Alternar menu" class="ui-icon-btn" id="sidebarToggle" title="Recolher ou abrir menu" type="button"><i class="bi bi-list"></i></button>
+<div class="topbar-title"><strong>3D Print Pro</strong><small>Gestão inteligente de impressão 3D</small></div>
+</div>
+<div class="topbar-right">
+<button class="ui-icon-btn d-none" id="pwaInstallBtn" onclick="installSistema3D()" title="Instalar aplicativo" type="button"><i class="bi bi-download"></i></button>
+<button aria-label="Notificações" class="ui-icon-btn" id="notificationBell" title="Notificações" type="button"><i class="bi bi-bell"></i><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationBadge" style="display:none">0</span></button>
+<div id="s7CurrentUser" class="s7-user-chip d-none"></div>
+<button class="ui-icon-btn d-none" id="s7LogoutBtn" onclick="sprint7Logout()" title="Sair"><i class="bi bi-box-arrow-right"></i></button>
+<div aria-label="Tema" class="theme-segment">
+<button data-theme-choice="light" title="Tema claro" type="button"><i class="bi bi-sun"></i></button>
+<button data-theme-choice="dark" title="Tema escuro" type="button"><i class="bi bi-moon-stars"></i></button>
+<button data-theme-choice="auto" title="Tema automático" type="button"><i class="bi bi-circle-half"></i></button>
+</div>
+</div>
+</header>
+<!-- ===== DASHBOARD ===== -->
+<div class="tab-panel active" data-partial="partials/dashboard.html" id="dashboard"></div>
+<!-- ===== CALCULADORA ===== -->
+<div class="tab-panel" data-partial="partials/calculator.html" id="calculator"></div>
+<!-- ===== PRODUTOS ===== -->
+<div class="tab-panel" data-partial="partials/products.html" id="products"></div>
+<!-- ===== PEDIDOS ===== -->
+<div class="tab-panel" data-partial="partials/orders.html" id="orders"></div>
+<!-- ===== PRODUÇÃO ===== -->
+<div class="tab-panel" data-partial="partials/production.html" id="production"></div>
+<!-- ===== ORÇAMENTOS ===== -->
+<div class="tab-panel" data-partial="partials/quotes.html" id="quotes"></div>
+<!-- ===== CLIENTES ===== -->
+<div class="tab-panel" data-partial="partials/clients.html" id="clients"></div>
+<!-- ===== MATERIAIS (ESTOQUE) ===== -->
+<div class="tab-panel" data-partial="partials/inventory.html" id="inventory"></div>
+<!-- ===== MANUTENÇÃO ===== -->
+<div class="tab-panel" data-partial="partials/maintenance.html" id="maintenance"></div>
+<!-- ===== IMPRESSORAS ===== -->
+<div class="tab-panel" data-partial="partials/printers.html" id="printers"></div>
+<!-- ===== EMBALAGENS ===== -->
+<div class="tab-panel" data-partial="partials/packaging.html" id="packaging"></div>
+<!-- ===== ADICIONAIS ===== -->
+<div class="tab-panel" data-partial="partials/addons.html" id="addons"></div>
+<!-- ===== CONSIGNAÇÕES ===== -->
+<div class="tab-panel" data-partial="partials/consignments.html" id="consignments"></div>
+<!-- ===== FINANCEIRO ===== -->
+<div class="tab-panel" data-partial="partials/finance.html" id="finance"></div>
+<!-- ===== DESPESAS ===== -->
+<div class="tab-panel" data-partial="partials/expenses.html" id="expenses"></div>
+<!-- ===== RELATÓRIOS ===== -->
+<div class="tab-panel" data-partial="partials/reports.html" id="reports"></div>
+<!-- ===== MARKETPLACES ===== -->
+<div class="tab-panel" data-partial="partials/marketplaces.html" id="marketplaces"></div>
+<!-- ===== CONFIGURAÇÕES ===== -->
+<div class="tab-panel" data-partial="partials/settings.html" id="settings"></div>
+<!-- ===== INSIGHTS ===== -->
+<div class="tab-panel" data-partial="partials/insights.html" id="insights"></div>
+</main><!-- /main -->
+</div><!-- /app -->
+<!-- Modal genérico -->
+<div aria-hidden="true" class="modal fade" id="modal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+<div class="modal-content">
+<div class="modal-header">
+<h3 class="modal-title" id="modalTitle">Título</h3>
+<button aria-label="Fechar" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+</div>
+<div class="modal-body" id="modalBody"></div>
+</div>
+</div>
+</div>
 <!-- sql.js (local) -->
-<script src="js/sql-wasm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script><script src="js/sql-wasm.js"></script>
 <!-- JSZip para leitura de arquivos .3mf -->
 <script src="js/jszip.min.js"></script>
-
 <!-- Módulos -->
-<script src="js/db.js"></script>
+<script src="js/constants.js?v=3.2.0"></script>
+<script src="js/relational-api.js?v=8.4.0"></script>
+<script src="js/relational-sync.js?v=10"></script>
+    <script src="js/db.js?v=4.0.0"></script>
+<script src="js/audit.js?v=4.0.0"></script>
 <script src="js/gcode.js"></script>
 <script src="js/calculator.js"></script>
-<script src="js/orders.js"></script>
-<script src="js/clients.js"></script>
+<script src="js/orders.js?v=4.0.0"></script>
+<script src="js/production.js"></script>
+<script src="js/clients.js?v=4.0.0"></script>
 <script src="js/materials.js"></script>
 <script src="js/printers.js"></script>
 <script src="js/packaging.js"></script>
 <script src="js/addons.js"></script>
-<script src="js/products.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/utils.js"></script>
+<script src="js/products.js?v=4.0.0"></script>
+<script src="js/dashboard.js?v=3.1.0"></script>
+<script src="js/utils.js?v=5.0.0"></script>
 <script src="js/maintenance.js"></script>
 <script src="js/bambu.js"></script>
-<script src="js/expenses.js"></script>
-<script src="js/reports.js"></script>
+<script src="js/expenses.js?v=3.3.0"></script>
+<script src="js/finance.js?v=9.0.0"></script>
+<script src="js/consignments.js?v=1.0.0"></script>
+<script src="js/reports.js?v=s8e3"></script>
 <script src="js/shipping.js"></script>
-<script src="js/quotes.js"></script>
-
+<script src="js/quotes.js?v=4.0.0"></script>
+<script src="js/insights.js?v=4.0.0"></script>
+<script src="js/etsy_config.js"></script>
+<script src="js/settings-ui.js?v=8.0.0"></script>
+<script src="js/database-settings.js?v=8.0.0"></script>
+<script src="js/bootstrap-ui.js?v=1.1.0"></script><script src="js/phase1-ui.js"></script>
+<script src="js/phase2-ui.js"></script>
+<script src="js/sprint5.js?v=5.0.0"></script>
+<script src="js/sprint6.js?v=6.0.0"></script>
+<script src="js/sprint7.js?v=7.0.0"></script>
+<script src="js/rest-modules.js?v=9.0.0"></script>
 <script>
+    RestModules.install();
     initDB();
 </script>
-</body>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer" style="z-index:1090"></div></body>
 </html>
-                                                                                                                                                                                                                 

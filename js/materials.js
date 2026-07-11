@@ -77,21 +77,21 @@ function materialFormHTML(data = {}) {
         : 1.00;
     const efValue = (data.energyFactor && data.energyFactor > 0) ? data.energyFactor : autoFactor;
     return `
-        <div class="input-group"><label>Material</label>
+        <div class="field-group"><label>Material</label>
             <input type="text" id="matName" value="${h(data.name || '')}" placeholder="Ex: PLA"></div>
-        <div class="input-group"><label>Cor</label>
+        <div class="field-group"><label>Cor</label>
             <input type="text" id="matColor" value="${h(data.color || '')}" placeholder="Ex: Branco"></div>
-        <div class="input-group"><label>Peso da Bobina (g)</label>
+        <div class="field-group"><label>Peso da Bobina (g)</label>
             <input type="number" id="matSpoolWeight" value="${data.spoolWeight ?? 1000}"></div>
-        <div class="input-group"><label>Custo (R$/kg)</label>
+        <div class="field-group"><label>Custo (R$/kg)</label>
             <input type="number" id="matCost" value="${data.cost ?? 90}" step="0.01"></div>
-        <div class="input-group"><label>Fator de Energia
+        <div class="field-group"><label>Fator de Energia
             <small style="font-weight:400;color:var(--text-muted);">PLA=1.00, PETG=1.10, ABS=1.30, Nylon=1.40</small></label>
             <input type="number" id="matEnergyFactor" value="${efValue}" min="0.5" max="3.0" step="0.05">
             <small>Multiplica o custo de energia pela maior demanda térmica do material.</small></div>
-        <div class="input-group"><label>Estoque (g)</label>
+        <div class="field-group"><label>Estoque (g)</label>
             <input type="number" id="matStock" value="${data.stock ?? 1000}"></div>
-        <div class="input-group"><label>Alerta Mínimo (g)</label>
+        <div class="field-group"><label>Alerta Mínimo (g)</label>
             <input type="number" id="matMinAlert" value="${data.minAlert ?? 200}"></div>
         <button class="btn-primary" onclick="saveMaterial(false)" style="margin-top:15px;">Salvar Material</button>
     `;
@@ -131,17 +131,17 @@ function addStock(matId) {
 
     document.getElementById('modalTitle').innerHTML = `➕ Entrada de Estoque — ${h(matName)} ${h(matColor)}`;
     document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
+        <div class="field-group">
             <label>Quantidade adicionada (gramas)</label>
             <input type="number" id="stockQtyG" value="1000" min="1" step="1">
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Preço pago pela bobina/lote (R$)</label>
             <input type="number" id="stockCostTotal" value="" min="0" step="0.01"
                 placeholder="Ex.: 89.90 — deixe vazio para manter custo atual">
             <small>Se informado, recalcula o custo/kg do material automaticamente.</small>
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Observação (opcional)</label>
             <input type="text" id="stockNotes" placeholder="Ex.: Compra Bambu Store">
         </div>
@@ -230,7 +230,7 @@ function showStockHistory(matId, matLabel) {
         tableHTML = '<p style="color:var(--text-muted);padding:12px 0;">Nenhuma movimentação registrada ainda.</p>';
     }
 
-    document.getElementById('modalTitle').innerHTML = `📋 Histórico — ${matLabel}`;
+    document.getElementById('modalTitle').innerHTML = `📋 Histórico — ${h(matLabel)}`;
     document.getElementById('modalBody').innerHTML = tableHTML;
     openModal();
 }

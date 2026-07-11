@@ -2,9 +2,17 @@
 let db = null;
 let currentSettings = {};
 const DB_STORAGE_KEY = '3dprint_db'; // fallback legado no navegador
+const DB_STORAGE_TS_KEY = '3dprint_db_saved_at'; // horário da cópia mais recente no navegador
 const DB_API_URL = '/api/db';        // persistência real em arquivo SQLite local
 let sqliteServerPersistence = false;
 let persistTimer = null;
+let persistQueue = Promise.resolve(true);
+let persistSequence = 0;
+const DB_SCHEMA_VERSION = 5;
+let _dbChangedDuringInit = false;
+let _recoveredBrowserCopyNeedsSync = false;
+let runtimePlatform = { platform: 'unknown', is_windows: false, is_linux: false };
+let lastPersistedSnapshot = null;
 
 async function loadAllPartials() {
     const panels = document.querySelectorAll('[data-partial]');
@@ -24,34 +32,58 @@ async function initDB() {
     // garantindo que todos os elementos DOM existam quando as funções de carga forem chamadas.
     await loadAllPartials();
 
+    try {
+        const platformResponse = await fetch('/api/platform', { cache: 'no-store' });
+        if (platformResponse.ok) runtimePlatform = await platformResponse.json();
+    } catch (_) {
+        runtimePlatform = { platform: 'browser-only', is_windows: false, is_linux: false };
+    }
+
     const SQL = await initSqlJs({
         locateFile: file => `js/${file}`
     });
 
     db = await loadSQLiteDatabase(SQL);
     createTables();
+    runDatabaseMigrations();
     migrateSettings();
     initDefaultData();
+    window.db = db; // expõe para módulos que usam window.db como guarda de prontidão
+    if (window.RelationalSync) await window.RelationalSync.bootstrap();
+            window.RelationalAPI?.installDbTracker();
     loadSettings();
     loadClients(); loadMaterials(); loadPrinters(); loadOrders();
     loadPackaging(); loadAddons();
+    if (typeof loadPrinterDashboard === 'function') loadPrinterDashboard();
+    if (typeof Phase2UI !== 'undefined') Phase2UI.updateBadge();
     if (typeof loadProducts === 'function') loadProducts();
     if (typeof loadMarketplaces === 'function') loadMarketplaces();
     if (typeof loadQuotes === 'function') loadQuotes();
     updateDashboard(); updateStatsBar(); updateAlertSystem();
     setupEventListeners();
+    if (_dbChangedDuringInit || _recoveredBrowserCopyNeedsSync) {
+        _recoveredBrowserCopyNeedsSync = false;
+        await persistDBNow();
+    }
 }
 
 async function loadSQLiteDatabase(SQL) {
-    // 1) Preferência: arquivo SQLite salvo pelo servidor local Python.
+    // No Windows, o navegador pode ser fechado antes do último POST terminar.
+    // Por isso comparamos a data da cópia do navegador com a data do arquivo
+    // SQLite e carregamos a versão mais recente.
+    let serverBytes = null;
+    let serverMtime = 0;
+    let serverAvailable = false;
+
     try {
         const response = await fetch(DB_API_URL, { cache: 'no-store' });
+        serverAvailable = response.ok || response.status === 204 || response.status === 404;
         if (response.ok) {
             const buffer = await response.arrayBuffer();
             if (buffer.byteLength > 0) {
+                serverBytes = new Uint8Array(buffer);
+                serverMtime = Number(response.headers.get('X-Sistema3D-MTime') || 0);
                 sqliteServerPersistence = true;
-                console.info('Banco SQLite carregado do arquivo local.');
-                return new SQL.Database(new Uint8Array(buffer));
             }
         } else if (response.status === 204 || response.status === 404) {
             sqliteServerPersistence = true;
@@ -60,14 +92,34 @@ async function loadSQLiteDatabase(SQL) {
         console.warn('Servidor SQLite local indisponível. Usando fallback no navegador.', e);
     }
 
-    // 2) Fallback: banco salvo anteriormente no navegador.
     const saved = localStorage.getItem(DB_STORAGE_KEY);
+    const browserMtime = Number(localStorage.getItem(DB_STORAGE_TS_KEY) || 0);
+    let browserBytes = null;
     if (saved) {
         try {
-            return new SQL.Database(new Uint8Array(JSON.parse(saved)));
+            browserBytes = new Uint8Array(JSON.parse(saved));
         } catch (e) {
-            console.warn('Banco do navegador corrompido, criando novo.', e);
+            console.warn('Banco do navegador corrompido; cópia ignorada.', e);
         }
+    }
+
+    // Se o navegador contém uma cópia mais nova, ela vence. Isso recupera
+    // alterações feitas imediatamente antes de fechar a janela no Windows.
+    if (browserBytes && (!serverBytes || browserMtime > serverMtime + 500)) {
+        console.info('Cópia mais recente recuperada do navegador e será sincronizada com o SQLite.');
+        const recovered = new SQL.Database(browserBytes);
+        _recoveredBrowserCopyNeedsSync = serverAvailable;
+        return recovered;
+    }
+
+    if (serverBytes) {
+        console.info('Banco SQLite carregado do arquivo local.');
+        return new SQL.Database(serverBytes);
+    }
+
+    if (browserBytes) {
+        console.info('Banco carregado da cópia de segurança do navegador.');
+        return new SQL.Database(browserBytes);
     }
 
     return new SQL.Database();
@@ -84,25 +136,46 @@ async function writeDBToSQLiteFile(data) {
     try {
         const response = await fetch(DB_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/octet-stream' },
-            body: data
+            headers: {
+                'Content-Type': 'application/octet-stream',
+                'X-Sistema3D-Save': String(++persistSequence)
+            },
+            body: data,
+            cache: 'no-store'
         });
-        if (response.ok) {
+        let payload = null;
+        try { payload = await response.json(); } catch (_) { payload = null; }
+        if (response.ok && (!payload || payload.ok !== false)) {
             sqliteServerPersistence = true;
-            updatePersistenceStatus('SQLite local salvo em app_data/sistema3d.sqlite', true);
+            const savedAt = Number(payload && payload.saved_at_ms ? payload.saved_at_ms : Date.now());
+            localStorage.setItem(DB_STORAGE_TS_KEY, String(savedAt));
+            lastPersistedSnapshot = data;
+            updatePersistenceStatus('Banco local sincronizado', true);
+            if (window.RelationalSync) await window.RelationalSync.syncNow();
             return true;
         }
-        console.error('Erro ao salvar SQLite local:', response.status, await response.text());
+        console.error('Erro ao salvar SQLite local:', response.status, payload || response.statusText);
     } catch (e) {
         console.warn('Servidor SQLite local indisponível; dados salvos apenas no navegador.', e);
     }
-    updatePersistenceStatus('Servidor local indisponível: usando fallback do navegador', false);
+    updatePersistenceStatus('Falha ao gravar SQLite: dados preservados no navegador', false);
     return false;
 }
 
-function persistBrowserFallback(data) {
+function enqueueSQLiteSave(data) {
+    // Serializa as gravações. No Windows, duas requisições POST simultâneas
+    // podem manter o arquivo aberto e impedir a substituição do SQLite.
+    persistQueue = persistQueue
+        .catch(() => false)
+        .then(() => writeDBToSQLiteFile(data));
+    return persistQueue;
+}
+
+function persistBrowserFallback(data, savedAt = Date.now()) {
     try {
         localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(Array.from(data)));
+        localStorage.setItem(DB_STORAGE_TS_KEY, String(savedAt));
+        lastPersistedSnapshot = data;
     } catch (e) {
         console.warn('Não foi possível salvar fallback no navegador:', e);
     }
@@ -114,7 +187,7 @@ function persistDB(delay = 250) {
     persistTimer = setTimeout(async () => {
         const data = db.export();
         persistBrowserFallback(data);
-        await writeDBToSQLiteFile(data);
+        await enqueueSQLiteSave(data);
     }, delay);
 }
 
@@ -123,22 +196,32 @@ async function persistDBNow() {
     clearTimeout(persistTimer);
     const data = db.export();
     persistBrowserFallback(data);
-    return await writeDBToSQLiteFile(data);
+    return await enqueueSQLiteSave(data);
 }
 
-// Tentativa extra de salvar quando o usuário fecha/atualiza a página.
-window.addEventListener('beforeunload', () => {
+// Persistência multiplataforma no ciclo de vida da página.
+// localStorage é síncrono e garante a recuperação; visibilitychange antecipa o POST
+// normal antes que Windows/Linux encerrem a aba. Não dependemos de sendBeacon.
+function snapshotBrowserDatabase() {
     if (!db) return;
     try {
-        const data = db.export();
-        persistBrowserFallback(data);
-        if (navigator.sendBeacon) {
-            navigator.sendBeacon(DB_API_URL, new Blob([data], { type: 'application/octet-stream' }));
-        }
+        persistBrowserFallback(db.export());
     } catch (e) {
-        console.warn('Falha ao salvar no fechamento da página:', e);
+        console.warn('Falha ao criar cópia de segurança no navegador:', e);
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && db) {
+        snapshotBrowserDatabase();
+        // A requisição pode concluir se o navegador mantiver a página viva; se não,
+        // a cópia do navegador será reconciliada na próxima abertura.
+        persistDBNow().catch(() => false);
     }
 });
+
+window.addEventListener('pagehide', snapshotBrowserDatabase);
+window.addEventListener('beforeunload', snapshotBrowserDatabase);
 
 function createTables() {
     db.run(`CREATE TABLE IF NOT EXISTS orders (
@@ -252,6 +335,12 @@ function createTables() {
 
     ensureColumn('printers', 'hours_used', 'REAL');
     ensureColumn('materials', 'energy_factor', 'REAL DEFAULT 1.0');
+    ensureColumn('clients', 'document', 'TEXT');
+    ensureColumn('clients', 'postal_code', 'TEXT');
+    ensureColumn('clients', 'address_number', 'TEXT');
+    ensureColumn('clients', 'address_complement', 'TEXT');
+    ensureColumn('clients', 'deleted_at', 'TEXT');
+    ensureColumn('products', 'deleted_at', 'TEXT');
 
     db.run(`CREATE TABLE IF NOT EXISTS order_notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,7 +354,11 @@ function createTables() {
         description TEXT NOT NULL,
         amount REAL NOT NULL DEFAULT 0,
         recurrence TEXT NOT NULL DEFAULT 'once',
-        date TEXT NOT NULL)`);
+        date TEXT NOT NULL,
+        recurrence_parent_id INTEGER,
+        recurrence_key TEXT)`);
+    ensureColumn('expenses', 'recurrence_parent_id', 'INTEGER');
+    ensureColumn('expenses', 'recurrence_key', 'TEXT');
 
     db.run(`CREATE TABLE IF NOT EXISTS stock_purchases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,7 +395,102 @@ function createTables() {
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_order_notes_order ON order_notes(order_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date)`);
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_expenses_recurrence_key ON expenses(recurrence_key) WHERE recurrence_key IS NOT NULL`);
+    ensureColumn('quotes', 'deleted_at', 'TEXT');
+    db.run(`CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, table_name TEXT NOT NULL, record_id TEXT,
+        action TEXT NOT NULL, old_data TEXT, new_data TEXT, created_at TEXT NOT NULL)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at)`);
+    db.run(`CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, notification_key TEXT UNIQUE NOT NULL,
+        type TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'medium', title TEXT NOT NULL,
+        message TEXT, target_tab TEXT, is_read INTEGER NOT NULL DEFAULT 0,
+        active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_notifications_active ON notifications(active,is_read,priority)`);
+    db.run(`CREATE TABLE IF NOT EXISTS attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+        filename TEXT NOT NULL, stored_path TEXT NOT NULL, mime_type TEXT, size_bytes INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type,entity_id)`);
+    db.run(`CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT, permissions TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL)`);
+    db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password_hash TEXT, role_id INTEGER, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, last_login TEXT, FOREIGN KEY(role_id) REFERENCES roles(id))`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_users_active ON users(active,email)`);
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status)`);
+}
+
+
+function markDBChanged() {
+    _dbChangedDuringInit = true;
+}
+
+function runDatabaseMigrations() {
+    try {
+        db.run(`CREATE TABLE IF NOT EXISTS schema_migrations (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            version INTEGER NOT NULL DEFAULT 0,
+            applied_at TEXT NOT NULL
+        )`);
+        const current = db.exec('SELECT version FROM schema_migrations WHERE id = 1')?.[0]?.values?.[0]?.[0] || 0;
+
+        const migrations = [
+            { version: 1, run() { /* schema-base criado de forma idempotente por createTables() */ } },
+            { version: 2, run() { /* normalização de clientes, pedidos e integrações */ } },
+            { version: 3, run() {
+                ensureColumn('expenses', 'recurrence_parent_id', 'INTEGER');
+                ensureColumn('expenses', 'recurrence_key', 'TEXT');
+                db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_expenses_recurrence_key
+                        ON expenses(recurrence_key) WHERE recurrence_key IS NOT NULL`);
+            } },
+            { version: 4, run() {
+                ensureColumn('clients', 'deleted_at', 'TEXT');
+                ensureColumn('products', 'deleted_at', 'TEXT');
+                ensureColumn('quotes', 'deleted_at', 'TEXT');
+                db.run(`CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, table_name TEXT NOT NULL, record_id TEXT,
+                    action TEXT NOT NULL, old_data TEXT, new_data TEXT, created_at TEXT NOT NULL)`);
+                db.run('CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at)');
+            } },
+            { version: 5, run() {
+                db.run(`CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, notification_key TEXT UNIQUE NOT NULL, type TEXT NOT NULL, priority TEXT NOT NULL DEFAULT 'medium', title TEXT NOT NULL, message TEXT, target_tab TEXT, is_read INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`);
+                db.run('CREATE INDEX IF NOT EXISTS idx_notifications_active ON notifications(active,is_read,priority)');
+                db.run(`CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY AUTOINCREMENT, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, filename TEXT NOT NULL, stored_path TEXT NOT NULL, mime_type TEXT, size_bytes INTEGER DEFAULT 0, created_at TEXT NOT NULL)`);
+                db.run('CREATE INDEX IF NOT EXISTS idx_attachments_entity ON attachments(entity_type,entity_id)');
+            } },
+            { version: 6, run() {
+                db.run(`CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, description TEXT, permissions TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL)`);
+                db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password_hash TEXT, role_id INTEGER, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, last_login TEXT, FOREIGN KEY(role_id) REFERENCES roles(id))`);
+                db.run('CREATE INDEX IF NOT EXISTS idx_users_active ON users(active,email)');
+                const now = new Date().toISOString();
+                db.run(`INSERT OR IGNORE INTO roles(name,description,permissions,created_at) VALUES ('Administrador','Acesso total','{"all":true}',?)`, [now]);
+                db.run(`INSERT OR IGNORE INTO roles(name,description,permissions,created_at) VALUES ('Operador','Pedidos, produção e estoque','{"orders":true,"production":true,"inventory":true}',?)`, [now]);
+            } },
+            { version: 7, run() {
+                db.run(`UPDATE roles SET permissions='{"all":true}' WHERE name='Administrador'`);
+                db.run(`UPDATE roles SET permissions='{"api":true,"orders":true,"production":true,"inventory":true,"attachments":true}' WHERE name='Operador'`);
+                db.run(`INSERT OR IGNORE INTO roles(name,description,permissions,created_at) VALUES ('Comercial','Clientes, produtos, orçamentos e Radar','{"api":true,"orders":true,"radar":true}',?)`, [new Date().toISOString()]);
+                db.run(`CREATE TABLE IF NOT EXISTS api_sync_log (id INTEGER PRIMARY KEY AUTOINCREMENT, direction TEXT NOT NULL, resource TEXT NOT NULL, status TEXT NOT NULL, details TEXT, created_at TEXT NOT NULL)`);
+            } }
+        ];
+        let applied = Number(current) || 0;
+        for (const migration of migrations) {
+            if (migration.version <= applied) continue;
+            db.run('BEGIN');
+            try {
+                migration.run();
+                db.run('INSERT OR REPLACE INTO schema_migrations (id, version, applied_at) VALUES (1, ?, ?)',
+                    [migration.version, new Date().toISOString()]);
+                db.run('COMMIT');
+                applied = migration.version;
+                markDBChanged();
+            } catch (migrationError) {
+                try { db.run('ROLLBACK'); } catch (_) {}
+                throw new Error(`Migração v${migration.version} falhou: ${migrationError.message}`);
+            }
+        }
+    } catch (e) {
+        console.warn('Falha ao registrar migração do banco', e);
+    }
 }
 
 // Custo de manutenção por hora calculado a partir dos itens cadastrados.
@@ -322,7 +510,7 @@ function ensureColumn(table, column, type) {
     try {
         const info = db.exec(`PRAGMA table_info(${table})`);
         const cols = info?.[0]?.values?.map(r => r[1]) || [];
-        if (!cols.includes(column)) db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+        if (!cols.includes(column)) { db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`); markDBChanged(); }
     } catch (e) {
         console.warn('Falha ao verificar coluna', table, column, e);
     }
@@ -333,16 +521,7 @@ function initDefaultCepShippingRates() {
     try {
         const count = db.exec('SELECT COUNT(*) FROM shipping_cep_rates')?.[0]?.values?.[0]?.[0] || 0;
         if (count > 0) return;
-        const defaults = [
-            ['SP', 'São Paulo', 0, 300, 18, 3], ['SP', 'São Paulo', 301, 500, 24, 3], ['SP', 'São Paulo', 501, 1000, 32, 4], ['SP', 'São Paulo', 1001, null, 45, 5],
-            ['RJ', 'Sudeste', 0, 300, 24, 4], ['RJ', 'Sudeste', 301, 500, 32, 4], ['RJ', 'Sudeste', 501, 1000, 45, 5], ['RJ', 'Sudeste', 1001, null, 60, 6],
-            ['MG', 'Sudeste', 0, 300, 24, 4], ['MG', 'Sudeste', 301, 500, 32, 4], ['MG', 'Sudeste', 501, 1000, 45, 5], ['MG', 'Sudeste', 1001, null, 60, 6],
-            ['ES', 'Sudeste', 0, 300, 26, 5], ['ES', 'Sudeste', 301, 500, 35, 5], ['ES', 'Sudeste', 501, 1000, 48, 6], ['ES', 'Sudeste', 1001, null, 65, 7],
-            ['PR', 'Sul', 0, 300, 26, 5], ['SC', 'Sul', 0, 300, 28, 5], ['RS', 'Sul', 0, 300, 30, 6],
-            ['PR', 'Sul', 301, 1000, 45, 6], ['SC', 'Sul', 301, 1000, 48, 6], ['RS', 'Sul', 301, 1000, 52, 7],
-            ['BR', 'Demais estados', 0, 300, 35, 7], ['BR', 'Demais estados', 301, 500, 45, 8], ['BR', 'Demais estados', 501, 1000, 65, 9], ['BR', 'Demais estados', 1001, null, 85, 10]
-        ];
-        defaults.forEach(r => db.run('INSERT INTO shipping_cep_rates (uf, region, min_weight, max_weight, cost, delivery_days) VALUES (?,?,?,?,?,?)', r));
+        DEFAULT_CEP_SHIPPING.forEach(r => db.run('INSERT INTO shipping_cep_rates (uf, region, min_weight, max_weight, cost, delivery_days) VALUES (?,?,?,?,?,?)', r));
     } catch (e) {
         console.warn('Falha ao inicializar tabela de frete por CEP', e);
     }
@@ -399,6 +578,11 @@ function loadSettings() {
     setInputValue('settingLossRate', currentSettings.lossRate, '10');
     setInputValue('settingMaintenancePerHour', currentSettings.maintenancePerHour, '0.50');
     setInputValue('settingFailRate', currentSettings.failRate, '5');
+    const hint = document.getElementById('historicalFailRateHint');
+    if (hint) {
+        const rate = getHistoricalFailRate();
+        hint.textContent = rate > 0 ? `(histórico real: ${(rate * 100).toFixed(1)}%)` : '';
+    }
     setInputValue('settingPackagingCost', currentSettings.packagingCost, '0');
     setInputValue('settingTaxRate', currentSettings.taxRate, '0');
     setInputValue('settingMonthlyGoal', currentSettings.monthlyGoal, '0');
@@ -411,6 +595,7 @@ function loadSettings() {
     setInputValue('settingQuoteValidityDays', currentSettings.quoteValidityDays, '15');
     updatePrinterHourInfo();
     loadShippingTable();
+    if (typeof loadMlConfig === 'function') loadMlConfig();
 }
 
 function saveSettings() {

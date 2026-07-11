@@ -1,28 +1,39 @@
-            <div class="page-header">
-                <h1>📦 Pedidos</h1>
-                <p>Gerencie orçamentos, pedidos em andamento e entregas</p>
-            </div>
-            <div class="panel-body">
-                <div id="printQueuePanel" style="margin-bottom:20px;display:none;">
-                    <div class="chart-title" style="margin-bottom:8px;">🖨️ Fila de Impressão</div>
-                    <div id="printQueueContent"></div>
-                </div>
-                <div style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <select id="orderStatusFilter" onchange="loadOrders(true)">
-                        <option value="all">Todos os status</option>
-                        <option value="quote">Orçamento</option>
-                        <option value="approved">Aprovado</option>
-                        <option value="paid">Pago</option>
-                        <option value="printing">Em impressão</option>
-                        <option value="post">Pós-processamento</option>
-                        <option value="packaging">Embalagem</option>
-                        <option value="shipped">Enviado</option>
-                        <option value="delivered">Entregue</option>
-                        <option value="cancelled">Cancelado</option>
-                        <option value="deleted">🗑️ Lixeira</option>
-                    </select>
-                    <button class="btn-primary" onclick="exportOrdersToCSV()">📎 Exportar CSV</button>
-                    <button class="btn-warning" onclick="importOrdersFromCSV()">📥 Importar CSV</button>
-                </div>
-                <div id="ordersList"></div>
-            </div>
+<div class="page-header page-header-hero">
+    <div>
+        <span class="eyebrow">Operação</span>
+        <h1>📦 Pedidos</h1>
+        <p>Acompanhe orçamentos, produção, pagamentos e entregas em uma visão mais limpa.</p>
+    </div>
+    <div class="hero-actions">
+        <button class="btn-secondary" onclick="switchTab('calculator', event)">🧮 Criar orçamento</button>
+        <button class="btn-primary" onclick="exportOrdersToCSV()">📎 Exportar CSV</button>
+    </div>
+</div>
+<div class="panel-body orders-screen">
+    <div id="printQueuePanel" class="modern-card" style="margin-bottom:16px;display:none;">
+        <div class="section-title"><div><span>🖨️</span><strong>Fila de impressão</strong></div></div>
+        <div id="printQueueContent"></div>
+    </div>
+    <div class="toolbar-card">
+        <div class="toolbar-filter">
+            <label>Status</label>
+            <select id="orderStatusFilter" onchange="loadOrders(true)">
+                <option value="all">Todos os status</option>
+                <option value="quote">Orçamento</option>
+                <option value="approved">Aprovado</option>
+                <option value="paid">Pago</option>
+                <option value="printing">Em impressão</option>
+                <option value="post">Pós-processamento</option>
+                <option value="packaging">Embalagem</option>
+                <option value="shipped">Enviado</option>
+                <option value="delivered">Entregue</option>
+                <option value="cancelled">Cancelado</option>
+                <option value="deleted">🗑️ Lixeira</option>
+            </select>
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn-warning" onclick="importOrdersFromCSV()">📥 Importar CSV</button>
+        </div>
+    </div>
+    <div id="ordersList"></div>
+</div>

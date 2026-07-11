@@ -137,18 +137,18 @@ function showMaintenanceModal(itemId = null) {
 
     document.getElementById('modalTitle').innerHTML = itemId ? '✏️ Editar Item de Manutenção' : '➕ Novo Item de Manutenção';
     document.getElementById('modalBody').innerHTML = `
-        <div class="input-group">
+        <div class="field-group">
             <label>Nome do item / peça</label>
             <input type="text" id="maintName" value="${h(data.name || '')}"
                 placeholder="Ex.: Bico 0.6mm, Extrusor, Rolamento...">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group">
+            <div class="field-group">
                 <label>Custo de reposição (R$)</label>
                 <input type="number" id="maintCost" value="${data.cost || ''}" min="0" step="0.01"
                     placeholder="Ex.: 15.00" oninput="updateMaintPreview()">
             </div>
-            <div class="input-group">
+            <div class="field-group">
                 <label>Vida útil estimada (horas)</label>
                 <input type="number" id="maintLifespan" value="${data.lh || ''}" min="1" step="1"
                     placeholder="Ex.: 500" oninput="updateMaintPreview()">
@@ -158,7 +158,7 @@ function showMaintenanceModal(itemId = null) {
              font-size:0.85em;text-align:center;margin-bottom:10px;">
             Custo/hora: <strong id="maintPreviewValue">—</strong>
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Observação (opcional)</label>
             <input type="text" id="maintNotes" value="${h(data.notes || '')}"
                 placeholder="Ex.: Trocar ao atingir temperatura de 300°C">

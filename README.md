@@ -1,145 +1,111 @@
-# Sistema 3D — Gestão de Impressão 3D
+# 3D Print Pro
 
-Sistema completo para gerenciamento de um negócio de impressão 3D. Roda inteiramente no navegador, sem servidor em nuvem, sem cadastro e sem mensalidade. Os dados ficam num arquivo SQLite local na sua máquina.
+ERP local para makers e microempreendedores de impressão 3D. Roda inteiramente no seu computador — sem nuvem, sem mensalidade, sem dependência de internet.
+
+---
+
+## O que é
+
+Um sistema de gestão completo voltado para quem vende peças impressas em 3D. Cobre desde o cálculo de custo do pedido até o controle de estoque de filamentos, gestão de clientes, kanban de produção, relatórios financeiros e pesquisa de novos produtos para vender.
+
+A interface roda no browser mas os dados ficam 100% locais em SQLite. O servidor Python é leve — serve os arquivos e expõe uma API REST mínima para backup, autenticação e integrações.
 
 ---
 
 ## Funcionalidades
 
-### Calculadora de Preço
-- Cálculo detalhado: material + máquina + depreciação + energia + mão de obra + embalagem + adicionais
-- Fator de energia por tipo de filamento (PLA ×1.00 / PETG ×1.10 / ABS ×1.30 / Nylon ×1.40) detectado automaticamente pelo nome do material, ajustável manualmente
-- Custo de purga por troca de cor — detectado automaticamente do G-code ou inserido manualmente
-- Suporte a taxa de falha, urgência, desconto por lote e taxa de marketplace
-- Campo de descrição do item (aparece no orçamento enviado ao cliente)
-- Integração com Melhor Envio para cálculo de frete por CEP
+**Calculadora de precificação**
+Calcula custo real por peça considerando material, energia, hora-máquina, falhas históricas, purga de troca de cor e taxas de marketplace. Gera orçamento exportável em PDF, compartilhável por link ou via Web Share.
 
-### Orçamentos
-- Salvar orçamentos calculados com status rastreável: ⏳ Aguardando / ✅ Aceito / ❌ Recusado
-- Converter orçamento aceito em pedido com um clique
-- Exportar orçamento para o cliente como HTML (sem expor custos internos)
-- Copiar mensagem formatada para WhatsApp com um clique
-- Validade configurável (padrão 15 dias)
+**Pedidos e produção**
+Kanban visual com os estágios aprovado → pago → imprimindo → pós-processo → embalagem → enviado. Timer de impressão ao vivo integrado com a calculadora. Histórico de notas por pedido e etiqueta imprimível.
 
-### Leitura de G-code / .3mf
-- Importação de arquivos `.gcode` e `.3mf` (Bambu Studio, OrcaSlicer, PrusaSlicer, Cura)
-- Preenche automaticamente: peso da peça, tempo de impressão, filamentos AMS
-- Detecção automática de trocas de cor (`M621` Bambu, `M600` Prusa/Cura)
+**Clientes**
+Cadastro com busca automática de endereço por CEP. Ficha individual com histórico completo de pedidos e total gasto.
 
-### Pedidos
-- Cadastro completo com cliente, material, tipo de trabalho, quantidade e preço
-- Status com fluxo completo: Orçamento → Aprovado → Pago → Imprimindo → Pós-processo → Embalagem → Enviado → Entregue
-- Soft-delete com lixeira e restauração
-- Paginação (20 por página)
-- Log de notas por pedido
-- Controle de pagamento parcial/total com badge colorido
-- Etiqueta imprimível por pedido (HTML gerado localmente)
-- Timer ao vivo para pedidos em impressão
-- Importação de pedidos via CSV
+**Produtos**
+Catálogo com modo de produção (sob demanda / estoque / consignação). Geração automática de SKU.
 
-### Clientes
-- Cadastro com endereço, telefone e e-mail
-- Ficha do cliente com histórico completo de pedidos
-- Link direto para WhatsApp e e-mail
+**Orçamentos**
+Pipeline de orçamentos com paginação. Conversão direta para pedido preservando tipo de serviço.
 
-### Materiais / Estoque
-- Controle de estoque em gramas com alerta de estoque mínimo
-- Histórico de movimentações (entradas, saídas, falhas, ajustes)
-- Entrada de estoque com registro de preço pago por bobina — recalcula custo/kg automaticamente
-- Fator de energia por material configurável individualmente
+**Materiais e estoque**
+Controle de bobinas com custo real por grama. Alertas de estoque mínimo. Histórico de movimentações. Dedução automática de material perdido ao registrar falha de impressão.
 
-### Impressoras
-- Cadastro com valor, vida útil, potência e velocidade
-- Cálculo automático de custo por hora (depreciação + energia + manutenção)
-- Horas acumuladas de uso com barra de progresso de vida útil
+**Impressoras**
+Registro de impressoras com horas acumuladas. Agenda de manutenção preventiva com custo por hora calculado automaticamente.
 
-### Manutenção
-- Cadastro de itens de manutenção com custo e vida útil em horas (correias, bicos, rolos)
-- Custo de manutenção por hora calculado automaticamente e incorporado na calculadora
+**Finanças**
+Módulo de despesas + fluxo de caixa. Controle de pagamentos parciais por pedido. Relatórios mensais de receita, lucro e margem com gráficos.
 
-### Dashboard
-- Faturamento, lucro, margem e ticket médio do mês atual
-- Meta mensal de faturamento com barra de progresso
-- Alertas de pedidos atrasados com acesso direto a WhatsApp e e-mail do cliente
-- Resumo de estoque baixo
+**Consignações**
+Gestão de produtos em consignação com acerto por período.
 
-### Relatórios
-- Evolução mensal de faturamento e lucro (gráfico de barras)
-- Breakdown por tipo de trabalho, material e cliente
-- Fluxo de caixa: receita vs. despesas por mês
-- Exportação CSV com BOM (compatível com Excel)
+**Frete**
+Integração com Melhor Envio para cálculo de frete na calculadora e geração de etiquetas.
 
-### Despesas
-- CRUD de despesas por categoria (Filamento, Energia, Manutenção, etc.)
-- Recorrência: única, mensal ou anual
-- Resumo por categoria com gráfico de barras
+**Radar de Produtos**
+Pesquisa de oportunidades de mercado (Etsy, Amazon, MakerWorld, Mercado Livre, etc.). Pipeline Kanban de ideias com pontuação automatizada por critérios configuráveis (demanda, margem, saturação, etc.). Converte ideia diretamente em produto no catálogo.
 
-### Fila de Impressão
-- Visão consolidada de pedidos aprovados/pagos/em impressão
-- Agrupamento por impressora com carga horária total estimada
+**Integração Mercado Livre**
+Conexão via OAuth para listar produtos diretamente do ML no módulo de Insights.
 
-### Integração Bambu Lab (MQTT local)
-- Monitoramento em tempo real via MQTT TLS direto na rede local
-- Progresso (%), camadas atual/total, tempo restante, temperaturas de bico e mesa
-- Widget ao vivo nos cards de pedido em impressão
-- Reconexão automática
+**Integração Bambu Lab**
+Monitoramento via MQTT da impressora Bambu Lab com status ao vivo nos cards de pedido.
 
----
+**Backup automático**
+Cópias diárias do banco SQLite com retenção configurável. Restauração com um clique.
 
-## Tecnologias
+**Autenticação (opcional)**
+Login com senha (PBKDF2-SHA256, 260 mil iterações). Rate limiting por IP. Sessões com TTL configurável. Pode ser ativado ou deixado desligado para uso local solo.
 
-| Camada | Tecnologia |
-|---|---|
-| Frontend | HTML + CSS + JavaScript puro (sem framework) |
-| Banco de dados | [sql.js](https://github.com/sql-js/sql.js) — SQLite no navegador via WebAssembly |
-| Persistência | Arquivo `.sqlite` local via servidor Python |
-| Servidor | Python `http.server` (stdlib) — sem Flask, sem dependências web |
-| MQTT | [paho-mqtt](https://github.com/eclipse/paho.mqtt.python) (opcional, para Bambu Lab) |
-| Frete | API Melhor Envio (opcional) |
+**Backend relacional (opcional)**
+Suporte a PostgreSQL e SQL Server via SQLAlchemy para equipes que precisam de acesso multi-usuário.
 
 ---
 
 ## Requisitos
 
-- Python 3.8 ou superior
-- Navegador moderno (Chrome, Edge, Firefox)
+- Python 3.11 ou superior
+- pip
 
-Para integração com Bambu Lab:
+Dependências Python (instaladas via requirements.txt):
+
 ```
-pip install paho-mqtt
+SQLAlchemy >= 2.0
+psycopg (binary) >= 3.1   # apenas se usar PostgreSQL
+pyodbc >= 5.0              # apenas se usar SQL Server
+paho-mqtt >= 2.0           # apenas se usar Bambu Lab
 ```
+
+O frontend usa Bootstrap 5, Bootstrap Icons e sql.js — todos incluídos localmente em `vendor/` e `js/`. Nenhuma CDN necessária para o app funcionar (exceto fontes externas opcionais).
 
 ---
 
 ## Instalação
 
-```bash
-git clone https://github.com/seu-usuario/sistema3d.git
-cd sistema3d
-python server.py
+### Windows
+
+```bat
+pip install -r requirements.txt
+iniciar_windows.bat
 ```
 
-Acesse `http://127.0.0.1:8080` no navegador.
+### Linux / macOS
 
-O banco de dados é criado automaticamente em `app_data/sistema3d.sqlite` na primeira execução. Backups automáticos são mantidos em `app_data/backups/` (máximo 30).
+```bash
+pip3 install -r requirements.txt
+chmod +x iniciar.sh
+./iniciar.sh
+```
+
+O servidor abre em `http://127.0.0.1:8080` e o browser abre automaticamente.
 
 ---
 
-## Configuração opcional
+## Primeira execução
 
-### Nome da empresa
-Em **Configurações → Identidade do Negócio**, defina o nome que aparece nos orçamentos enviados ao cliente e a validade padrão dos orçamentos.
-
-### Melhor Envio (frete por CEP)
-Em **Configurações → Melhor Envio**, informe seu token de acesso e CEP de origem.
-
-### Bambu Lab (monitoramento em tempo real)
-Em **Configurações → Bambu Lab**, informe:
-- **IP da impressora** — visível em Settings → Network na tela da impressora
-- **Serial Number** — visível em Settings → Device Info
-- **Access Code** — visível em Settings → Network → Access Code
-
-A impressora e o computador precisam estar na mesma rede Wi-Fi/LAN.
+No primeiro acesso o banco SQLite é criado automaticamente em `app_data/sistema3d.sqlite`. Vá em **Configurações** para preencher o nome da empresa, custo de energia, hora-máquina e demais parâmetros antes de começar a calcular.
 
 ---
 
@@ -147,50 +113,56 @@ A impressora e o computador precisam estar na mesma rede Wi-Fi/LAN.
 
 ```
 sistema3d/
-├── index.html              # Shell da SPA (nav + scripts)
-├── server.py               # Servidor HTTP local + integração MQTT Bambu
-├── partials/               # Conteúdo HTML de cada aba (carregado sob demanda)
-│   ├── dashboard.html
-│   ├── calculator.html
-│   ├── orders.html
-│   ├── quotes.html
-│   ├── settings.html
-│   └── ...                 # uma aba por arquivo
-├── app_data/               # Dados locais (gerado automaticamente)
-│   ├── sistema3d.sqlite
-│   ├── backups/
-│   ├── melhor_envio_config.json
-│   └── bambu_config.json
-├── css/
-│   └── styles.css
-└── js/
-    ├── db.js               # Schema, migrations, settings, carregamento de partials
-    ├── calculator.js       # Motor de cálculo de preço + fator de energia
-    ├── gcode.js            # Parser de G-code e .3mf
-    ├── orders.js           # Pedidos, fila, timer, notas, pagamentos, etiqueta
-    ├── quotes.js           # Orçamentos com rastreamento de status
-    ├── clients.js          # Clientes e ficha do cliente
-    ├── materials.js        # Estoque e histórico de movimentações
-    ├── printers.js         # Impressoras e horas acumuladas
-    ├── maintenance.js      # Itens de manutenção e custo/hora
-    ├── dashboard.js        # Dashboard e alertas
-    ├── reports.js          # Relatórios e exportação CSV
-    ├── expenses.js         # Módulo de despesas
-    ├── bambu.js            # Polling MQTT frontend + widgets
-    ├── utils.js            # switchTab, modal, toast, PDF, orçamento HTML/WhatsApp
-    └── ...                 # shipping, packaging, addons, products
+├── server.py                # Servidor HTTP + API REST
+├── server_core/             # Módulos Python (auth, backup, relational, etc.)
+├── platform_utils.py        # Utilitários de plataforma
+├── requirements.txt
+├── iniciar.sh               # Atalho Linux/macOS
+├── iniciar_windows.bat      # Atalho Windows
+│
+├── index.html               # SPA principal
+├── partials/                # Abas carregadas dinamicamente
+├── js/                      # Lógica de cada módulo
+├── css/                     # Estilos
+├── assets/                  # Ícones PWA
+├── vendor/                  # Bootstrap e Bootstrap Icons (offline)
+│
+├── manifest.webmanifest     # PWA installable
+├── service-worker.js        # Cache offline
+│
+└── app_data/                # Criado automaticamente — NÃO versionado
+    ├── sistema3d.sqlite     # Banco de dados local
+    ├── backups/             # Backups automáticos
+    ├── backup_config.json   # Configuração de backup
+    └── melhor_envio_config.json  # Token Melhor Envio (privado)
 ```
+
+> **`app_data/` está no `.gitignore` e nunca deve ser commitado.** Contém seu banco de dados e tokens de integração.
 
 ---
 
-## Backup e restauração
+## Integrações opcionais
 
-O servidor cria um backup automático do banco a cada salvamento. Para exportar manualmente, use o botão **Backup** em Configurações — isso gera um arquivo `.sqlite` que pode ser salvo em qualquer lugar.
+### Melhor Envio
+Gere um token em [melhorenvio.com.br](https://melhorenvio.com.br) e configure em **Configurações → Frete**.
 
-Para restaurar, use o botão **Restaurar** e selecione o arquivo `.sqlite`.
+### Mercado Livre
+Crie um app em [developers.mercadolivre.com.br](https://developers.mercadolivre.com.br), configure o App ID e Secret em **Configurações → Marketplace** e clique em "Conectar".
+
+### Bambu Lab
+Informe o IP, serial e access code da impressora em **Configurações → Bambu Lab**. A conexão usa MQTT local (mesma rede).
+
+### PostgreSQL / SQL Server
+Configure em **Configurações → Banco de Dados**. O sistema migra os dados do SQLite local para o banco remoto com um clique.
+
+---
+
+## PWA
+
+O sistema pode ser instalado como aplicativo no Windows, macOS e Android via browser (botão de instalar na barra do topbar ou opção do Chrome/Edge). Funciona offline após a primeira carga.
 
 ---
 
 ## Licença
 
-MIT
+MIT — use, modifique e distribua livremente.

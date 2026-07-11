@@ -8,20 +8,6 @@ const DEFAULT_SHIPPING = [
     { region: 'Padrão', minWeight: 501, maxWeight: null, cost: 45 },
 ];
 
-const DEFAULT_CEP_SHIPPING = [
-    ['SP','São Paulo',0,300,18,3], ['SP','São Paulo',301,500,24,3], ['SP','São Paulo',501,1000,32,4], ['SP','São Paulo',1001,null,45,5],
-    ['RJ','Sudeste',0,300,24,4], ['RJ','Sudeste',301,500,32,4], ['RJ','Sudeste',501,1000,45,5], ['RJ','Sudeste',1001,null,60,6],
-    ['MG','Sudeste',0,300,24,4], ['MG','Sudeste',301,500,32,4], ['MG','Sudeste',501,1000,45,5], ['MG','Sudeste',1001,null,60,6],
-    ['ES','Sudeste',0,300,26,5], ['ES','Sudeste',301,500,35,5], ['ES','Sudeste',501,1000,48,6], ['ES','Sudeste',1001,null,65,7],
-    ['PR','Sul',0,300,26,5], ['SC','Sul',0,300,28,5], ['RS','Sul',0,300,30,6],
-    ['PR','Sul',301,1000,45,6], ['SC','Sul',301,1000,48,6], ['RS','Sul',301,1000,52,7],
-    ['BR','Demais estados',0,300,35,7], ['BR','Demais estados',301,500,45,8], ['BR','Demais estados',501,1000,65,9], ['BR','Demais estados',1001,null,85,10]
-];
-
-function escHtml(v) {
-    return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-}
-
 function normalizeCep(cep) {
     return String(cep || '').replace(/\D/g, '').slice(0, 8);
 }
@@ -93,7 +79,7 @@ function loadLegacyShippingTable() {
     if (rates.length > 0 && rates[0].values.length > 0) {
         rates[0].values.forEach(([id, region, minW, maxW, cost]) => {
             rows += `<tr>
-                <td><input type="text"   data-id="${id}" data-col="region"     value="${escHtml(region)}" class="ship-input" style="width:100px"></td>
+                <td><input type="text"   data-id="${id}" data-col="region"     value="${h(region)}" class="ship-input" style="width:100px"></td>
                 <td><input type="number" data-id="${id}" data-col="min_weight" value="${minW}"   class="ship-input" style="width:80px"></td>
                 <td><input type="number" data-id="${id}" data-col="max_weight" value="${maxW ?? ''}" class="ship-input" style="width:80px" placeholder="∞"></td>
                 <td><input type="number" data-id="${id}" data-col="cost"       value="${cost}"  class="ship-input" style="width:80px"></td>
@@ -124,8 +110,8 @@ function loadCepShippingTable() {
     if (rates.length > 0 && rates[0].values.length > 0) {
         rates[0].values.forEach(([id, uf, region, minW, maxW, cost, days]) => {
             rows += `<tr>
-                <td><input type="text" data-id="${id}" data-col="uf" value="${escHtml(uf)}" class="cep-ship-input" style="width:48px;text-transform:uppercase"></td>
-                <td><input type="text" data-id="${id}" data-col="region" value="${escHtml(region)}" class="cep-ship-input" style="width:110px"></td>
+                <td><input type="text" data-id="${id}" data-col="uf" value="${h(uf)}" class="cep-ship-input" style="width:48px;text-transform:uppercase"></td>
+                <td><input type="text" data-id="${id}" data-col="region" value="${h(region)}" class="cep-ship-input" style="width:110px"></td>
                 <td><input type="number" data-id="${id}" data-col="min_weight" value="${minW}" class="cep-ship-input" style="width:70px"></td>
                 <td><input type="number" data-id="${id}" data-col="max_weight" value="${maxW ?? ''}" class="cep-ship-input" style="width:70px" placeholder="∞"></td>
                 <td><input type="number" data-id="${id}" data-col="cost" value="${cost}" class="cep-ship-input" style="width:70px" step="0.01"></td>

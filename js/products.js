@@ -63,21 +63,24 @@ function showProductModal(product = null) {
     }
     document.getElementById('modalTitle').textContent = isEdit ? 'Editar Produto' : 'Novo Produto';
     document.getElementById('modalBody').innerHTML = `
+        <input type="hidden" id="prodMaterialId" value="${Number(product.material_id || 0)}">
+        <input type="hidden" id="prodPrinterId" value="${Number(product.printer_id || 0)}">
         <div class="form-grid">
-            <div class="input-group"><label>SKU</label><input id="prodSku" value="${product.sku || ''}"></div>
-            <div class="input-group"><label>Nome</label><input id="prodName" value="${product.name || ''}" placeholder="Ex.: Chaveiro personalizado"></div>
-            <div class="input-group"><label>Categoria</label><input id="prodCategory" value="${product.category || ''}" placeholder="Brindes, utilitários, decoração..."></div>
-            <div class="input-group"><label>Modo de venda</label><select id="prodMode"><option value="demand" ${product.production_mode !== 'batch' ? 'selected' : ''}>Sob demanda</option><option value="batch" ${product.production_mode === 'batch' ? 'selected' : ''}>Produção em lote</option></select></div>
-            <div class="input-group"><label>Peso (g)</label><input type="number" id="prodWeight" step="0.1" min="0" value="${Number(product.weight_g || 0).toFixed(1)}"></div>
-            <div class="input-group"><label>Tempo de impressão (h)</label><input type="number" id="prodTime" step="0.01" min="0" value="${Number(product.print_time_h || 0).toFixed(2)}"></div>
-            <div class="input-group"><label>Material</label><input id="prodMaterialName" value="${product.material_name || ''}"></div>
-            <div class="input-group"><label>Custo real</label><input type="number" id="prodCost" step="0.01" min="0" value="${Number(product.cost_price || 0).toFixed(2)}"></div>
-            <div class="input-group"><label>Custo com falhas</label><input type="number" id="prodCostFail" step="0.01" min="0" value="${Number(product.cost_with_fail || 0).toFixed(2)}"></div>
-            <div class="input-group"><label>Preço venda direta</label><input type="number" id="prodSale" step="0.01" min="0" value="${Number(product.sale_price || product.direct_price || 0).toFixed(2)}"></div>
-            <div class="input-group"><label>Estoque atual</label><input type="number" id="prodStock" step="1" min="0" value="${Number(product.stock_qty || 0)}"></div>
-            <div class="input-group"><label>Estoque mínimo</label><input type="number" id="prodMinStock" step="1" min="0" value="${Number(product.min_stock || 0)}"></div>
+            <div class="field-group"><label>SKU</label><input id="prodSku" value="${product.sku || ''}"></div>
+            <div class="field-group"><label>Nome</label><input id="prodName" value="${product.name || ''}" placeholder="Ex.: Chaveiro personalizado"></div>
+            <div class="field-group"><label>Categoria</label><input id="prodCategory" value="${product.category || ''}" placeholder="Brindes, utilitários, decoração..."></div>
+            <div class="field-group"><label>Modo de venda</label><select id="prodMode"><option value="demand" ${product.production_mode !== 'batch' ? 'selected' : ''}>Sob demanda</option><option value="batch" ${product.production_mode === 'batch' ? 'selected' : ''}>Produção em lote</option></select></div>
+            <div class="field-group"><label>Peso (g)</label><input type="number" id="prodWeight" step="0.1" min="0" value="${Number(product.weight_g || 0).toFixed(1)}"></div>
+            <div class="field-group"><label>Tempo de impressão (h)</label><input type="number" id="prodTime" step="0.01" min="0" value="${Number(product.print_time_h || 0).toFixed(2)}"></div>
+            <div class="field-group"><label>Dificuldade</label><select id="prodDifficulty"><option value="1" ${Number(product.difficulty||1)===1?'selected':''}>Normal (×1)</option><option value="1.2" ${Number(product.difficulty||1)===1.2?'selected':''}>Médio (×1.2)</option><option value="1.5" ${Number(product.difficulty||1)===1.5?'selected':''}>Difícil (×1.5)</option><option value="2" ${Number(product.difficulty||1)===2?'selected':''}>Complexo (×2)</option></select></div>
+            <div class="field-group"><label>Material</label><input id="prodMaterialName" value="${product.material_name || ''}"></div>
+            <div class="field-group"><label>Custo real</label><input type="number" id="prodCost" step="0.01" min="0" value="${Number(product.cost_price || 0).toFixed(2)}"></div>
+            <div class="field-group"><label>Custo com falhas</label><input type="number" id="prodCostFail" step="0.01" min="0" value="${Number(product.cost_with_fail || 0).toFixed(2)}"></div>
+            <div class="field-group"><label>Preço venda direta</label><input type="number" id="prodSale" step="0.01" min="0" value="${Number(product.sale_price || product.direct_price || 0).toFixed(2)}"></div>
+            <div class="field-group"><label>Estoque atual</label><input type="number" id="prodStock" step="1" min="0" value="${Number(product.stock_qty || 0)}"></div>
+            <div class="field-group"><label>Estoque mínimo</label><input type="number" id="prodMinStock" step="1" min="0" value="${Number(product.min_stock || 0)}"></div>
         </div>
-        <div class="input-group"><label>Descrição para anúncio</label><textarea id="prodDescription" rows="4" placeholder="Descrição curta do produto">${product.description || ''}</textarea></div>
+        <div class="field-group"><label>Descrição para anúncio</label><textarea id="prodDescription" rows="4" placeholder="Descrição curta do produto">${product.description || ''}</textarea></div>
         <div class="info-box">Para marketplace, salve o produto e abra a aba 🛒 Marketplaces para ver os preços com taxas.</div>
         <button class="btn-primary" onclick="saveProduct(${isEdit ? product.id : 'null'})" style="width:100%; margin-top:10px;">💾 Salvar Produto</button>
     `;
@@ -91,9 +94,12 @@ function readProductFromModal() {
         name: document.getElementById('prodName')?.value?.trim() || 'Produto sem nome',
         description: document.getElementById('prodDescription')?.value?.trim() || '',
         category: document.getElementById('prodCategory')?.value?.trim() || 'Geral',
+        material_id: parseInt(document.getElementById('prodMaterialId')?.value || 0, 10) || null,
         material_name: document.getElementById('prodMaterialName')?.value?.trim() || '',
+        printer_id: parseInt(document.getElementById('prodPrinterId')?.value || 0, 10) || null,
         weight_g: parseFloat(document.getElementById('prodWeight')?.value || 0) || 0,
         print_time_h: parseFloat(document.getElementById('prodTime')?.value || 0) || 0,
+        difficulty: parseFloat(document.getElementById('prodDifficulty')?.value || 1) || 1,
         cost_price: parseFloat(document.getElementById('prodCost')?.value || 0) || 0,
         cost_with_fail: parseFloat(document.getElementById('prodCostFail')?.value || 0) || 0,
         sale_price: sale,
@@ -110,10 +116,12 @@ function saveProduct(id = null) {
     const now = new Date().toISOString();
     try {
         if (id) {
-            db.run(`UPDATE products SET sku=?, name=?, description=?, category=?, material_name=?, weight_g=?, print_time_h=?,
+            db.run(`UPDATE products SET sku=?, name=?, description=?, category=?, material_id=?, material_name=?, printer_id=?,
+                    weight_g=?, print_time_h=?, difficulty=?,
                     cost_price=?, cost_with_fail=?, sale_price=?, direct_price=?, stock_qty=?, min_stock=?, production_mode=?, active=?, updated_at=?
                     WHERE id=?`,
-                [p.sku, p.name, p.description, p.category, p.material_name, p.weight_g, p.print_time_h,
+                [p.sku, p.name, p.description, p.category, p.material_id, p.material_name, p.printer_id,
+                 p.weight_g, p.print_time_h, p.difficulty,
                  p.cost_price, p.cost_with_fail, p.sale_price, p.direct_price, p.stock_qty, p.min_stock, p.production_mode, p.active, now, id]);
         } else {
             db.run(`INSERT INTO products (sku,name,description,category,material_name,weight_g,print_time_h,print_time_label,difficulty,
@@ -139,41 +147,58 @@ function saveProduct(id = null) {
 function loadProducts() {
     const el = document.getElementById('productsList');
     if (!el || !db) return;
-    const q = safeSqlLike(document.getElementById('productSearch')?.value || '');
-    let sql = `SELECT id, sku, name, category, material_name, weight_g, print_time_h, cost_with_fail, sale_price, stock_qty, min_stock, production_mode, active FROM products`;
-    if (q) sql += ` WHERE name LIKE '%${q}%' OR sku LIKE '%${q}%' OR category LIKE '%${q}%'`;
-    sql += ' ORDER BY id DESC';
-    const r = db.exec(sql);
+    const q = document.getElementById('productSearch')?.value?.trim() || '';
+    let sql, params;
+    if (q) {
+        const like = `%${q.replace(/[%_\\]/g, '\\$&')}%`;
+        sql = `SELECT id, sku, name, category, material_name, weight_g, print_time_h, cost_with_fail, sale_price, stock_qty, min_stock, production_mode, active FROM products WHERE deleted_at IS NULL AND (name LIKE ? OR sku LIKE ? OR category LIKE ?) ORDER BY id DESC`;
+        params = [like, like, like];
+    } else {
+        sql = `SELECT id, sku, name, category, material_name, weight_g, print_time_h, cost_with_fail, sale_price, stock_qty, min_stock, production_mode, active FROM products WHERE deleted_at IS NULL ORDER BY id DESC`;
+        params = [];
+    }
+    const r = db.exec(sql, params);
     if (!r.length || !r[0].values.length) {
-        el.innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Nenhum produto cadastrado. Use “Salvar como Produto” na calculadora.</p>';
+        el.innerHTML = `<div class="empty-state"><div>🏷️</div><strong>Nenhum produto cadastrado</strong><p>Use “Novo Produto” ou salve um cálculo da calculadora.</p></div>`;
         return;
     }
-    let html = '<div class="table-container"><table><thead><tr><th>SKU</th><th>Produto</th><th>Produção</th><th>Custo</th><th>Venda direta</th><th>Estoque</th><th>Ações</th></tr></thead><tbody>';
+    let html = '<div class="product-card-grid">';
     r[0].values.forEach(row => {
         const [id, sku, name, category, material, weight, time, costFail, sale, stock, minStock, mode, active] = row;
-        const stockWarn = Number(stock) <= Number(minStock) ? ' ⚠️' : '';
-        html += `<tr>
-            <td><strong>${h(sku || '')}</strong></td>
-            <td><strong>${h(name)}</strong><br><small>${h(category || 'Geral')} • ${h(material || 'Material não definido')}</small></td>
-            <td>${Number(weight || 0).toFixed(1)}g • ${formatHoursHuman(time || 0)}<br><small>${mode === 'batch' ? 'Lote' : 'Sob demanda'}</small></td>
-            <td>${money(costFail)}</td>
-            <td><strong>${money(sale)}</strong></td>
-            <td>${stock} / min. ${minStock}${stockWarn}</td>
-            <td>
-                <button class="btn-info btn-sm" onclick="editProduct(${id})">✏️</button>
-                <button class="btn-primary btn-sm" onclick="createOrderFromProduct(${id})">🧾 Pedido</button>
-                <button class="btn-danger btn-sm" onclick="deleteProduct(${id})">🗑️</button>
-            </td>
-        </tr>`;
+        const low = Number(minStock) > 0 && Number(stock) <= Number(minStock);
+        const margin = Number(sale || 0) - Number(costFail || 0);
+        html += `<article class="product-card ${low ? 'low-stock' : ''}">
+            <div class="product-card-top">
+                <span class="sku-pill">${h(sku || '')}</span>
+                <span class="stock-pill ${low ? 'danger' : 'ok'}">${low ? '⚠️ Estoque baixo' : '✅ Estoque ok'}</span>
+            </div>
+            <h3>${h(name)}</h3>
+            <p>${h(category || 'Geral')} • ${h(material || 'Material não definido')}</p>
+            <div class="product-metrics">
+                <div><small>Peso</small><strong>${Number(weight || 0).toFixed(1)}g</strong></div>
+                <div><small>Tempo</small><strong>${formatHoursHuman(time || 0)}</strong></div>
+                <div><small>Custo</small><strong>${money(costFail)}</strong></div>
+                <div><small>Venda</small><strong>${money(sale)}</strong></div>
+            </div>
+            <div class="product-footer">
+                <div class="product-stock"><span>Estoque</span><strong>${stock} / min. ${minStock}</strong><small>${mode === 'batch' ? 'Produção em lote' : 'Sob demanda'} • Margem ${money(margin)}</small></div>
+                <div class="product-actions">
+                    <button class="btn-info btn-sm" onclick="editProduct(${id})">✏️</button>
+                    <button class="btn-primary btn-sm" onclick="createOrderFromProduct(${id})">🧾 Pedido</button>
+                    <button class="btn-danger btn-sm" onclick="openAttachments('products',${id},'${name}')"><i class="bi bi-paperclip"></i></button>
+                    <button class="btn-danger btn-sm" onclick="deleteProduct(${id})">🗑️</button>
+                </div>
+            </div>
+        </article>`;
     });
-    html += '</tbody></table></div>';
+    html += '</div>';
     el.innerHTML = html;
 }
 
 function getProductById(id) {
     const r = db.exec(`SELECT id, sku, name, description, category, material_id, material_name, printer_id, weight_g, print_time_h,
         print_time_label, difficulty, cost_price, cost_with_fail, sale_price, direct_price, margin_pct, stock_qty, min_stock, production_mode, active
-        FROM products WHERE id=?`, [id]);
+        FROM products WHERE id=? AND deleted_at IS NULL`, [id]);
     if (!r.length || !r[0].values.length) return null;
     const cols = r[0].columns;
     const obj = {};
@@ -188,8 +213,9 @@ function editProduct(id) {
 
 function deleteProduct(id) {
     if (!confirm('Excluir este produto?')) return;
-    db.run('DELETE FROM marketplace_products WHERE product_id=?', [id]);
-    db.run('DELETE FROM products WHERE id=?', [id]);
+    const old=dbRowObject('SELECT * FROM products WHERE id=? AND deleted_at IS NULL',[id]);
+    db.run('UPDATE products SET deleted_at=?, active=0 WHERE id=?', [new Date().toISOString(), id]);
+    auditLog('products',id,'soft_delete',old,null);
     persistDB();
     loadProducts();
     loadMarketplaces();
@@ -205,7 +231,7 @@ function createOrderFromProduct(id) {
     db.run(`INSERT INTO orders (product_id, client_id, work_type, material_id, material_name, weight, print_time, difficulty, quantity,
             unit_price, total_price, profit, status, shipping_cost, date, notes, channel)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [id, 0, p.category || 'product', p.material_id || null, p.material_name || '', p.weight_g || 0, p.print_time_h || 0,
+        [id, 0, 'custom', p.material_id || null, p.material_name || '', p.weight_g || 0, p.print_time_h || 0,
          p.difficulty || 1, qty, p.sale_price || 0, total, profit, 'quote', 0, new Date().toISOString(), `Produto: ${p.sku} - ${p.name}`, 'direct']);
     persistDB();
     showToast('✅ Pedido criado a partir do produto!');
@@ -214,7 +240,7 @@ function createOrderFromProduct(id) {
 }
 
 function exportProductsToCSV() {
-    const r = db.exec(`SELECT sku,name,category,material_name,weight_g,print_time_h,cost_with_fail,sale_price,stock_qty,min_stock,production_mode FROM products ORDER BY id`);
+    const r = db.exec(`SELECT sku,name,category,material_name,weight_g,print_time_h,cost_with_fail,sale_price,stock_qty,min_stock,production_mode FROM products WHERE deleted_at IS NULL ORDER BY id`);
     if (!r.length || !r[0].values.length) return showToast('Nenhum produto para exportar');
     const header = 'SKU,Produto,Categoria,Material,Peso(g),Tempo(h),Custo,Fenda,Estoque,Estoque Min,Modo\n'.replace('Fenda','Venda');
     const rows = r[0].values.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -237,9 +263,9 @@ function renderMarketplaceConfigs() {
     if (!r.length) return;
     el.innerHTML = r[0].values.map(([code, name, fee, fixed, active]) => `
         <div style="display:grid;grid-template-columns:1.4fr .8fr .8fr .4fr;gap:8px;align-items:end;margin-bottom:8px;">
-            <div class="input-group"><label>${h(name)}</label><input id="mkName_${h(code)}" value="${h(name)}"></div>
-            <div class="input-group"><label>Taxa %</label><input type="number" id="mkFee_${h(code)}" value="${Number(fee || 0)}" step="0.1" min="0" max="80"></div>
-            <div class="input-group"><label>Fixo R$</label><input type="number" id="mkFixed_${h(code)}" value="${Number(fixed || 0)}" step="0.01" min="0"></div>
+            <div class="field-group"><label>${h(name)}</label><input id="mkName_${h(code)}" value="${h(name)}"></div>
+            <div class="field-group"><label>Taxa %</label><input type="number" id="mkFee_${h(code)}" value="${Number(fee || 0)}" step="0.1" min="0" max="80"></div>
+            <div class="field-group"><label>Fixo R$</label><input type="number" id="mkFixed_${h(code)}" value="${Number(fixed || 0)}" step="0.01" min="0"></div>
             <label style="font-size:.8em;"><input type="checkbox" id="mkActive_${h(code)}" ${active ? 'checked' : ''}> ativo</label>
         </div>`).join('');
 }
@@ -262,7 +288,7 @@ function saveMarketplaceConfigs() {
 function renderMarketplaceProducts() {
     const el = document.getElementById('marketplaceProductsList');
     if (!el || !db) return;
-    const products = db.exec('SELECT id,sku,name,sale_price,cost_with_fail FROM products WHERE active=1 ORDER BY id DESC');
+    const products = db.exec('SELECT id,sku,name,sale_price,cost_with_fail FROM products WHERE active=1 AND deleted_at IS NULL ORDER BY id DESC');
     const markets = db.exec('SELECT code,name,fee_pct,fixed_fee FROM marketplace_configs WHERE active=1 ORDER BY id');
     if (!products.length || !products[0].values.length) {
         el.innerHTML = '<p style="color:#888;">Cadastre produtos para calcular preços por marketplace.</p>';

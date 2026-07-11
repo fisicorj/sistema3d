@@ -1,17 +1,5 @@
 // ==================== PEDIDOS ====================
 
-const STATUS_NAMES = {
-    quote:      'Orçamento',
-    approved:   'Aprovado',
-    paid:       'Pago',
-    printing:   'Imprimindo',
-    post:       'Pós-processamento',
-    packaging:  'Embalagem',
-    shipped:    'Enviado',
-    delivered:  'Entregue',
-    cancelled:  'Cancelado'
-};
-
 function saveQuoteAsOrder() {
     const price       = calculatePrice();
     const clientId    = parseInt(document.getElementById('calcClientId').value) || 0;
@@ -168,11 +156,13 @@ function loadOrders(resetPage = false) {
                             <select onchange="updateOrderStatus(${id}, this.value)">
                                 ${statusOptions}
                             </select>
+                            <button class="btn-secondary btn-sm" onclick="showOrderTimeline(${id})">🧭</button>
                             <button class="btn-success btn-sm" onclick="showOrderNotes(${id})">📝</button>
                             <button class="btn-info    btn-sm" onclick="registerPayment(${id}, ${totalPrice.toFixed(2)}, ${paid.toFixed(2)})">💳</button>
                             <button class="btn-info    btn-sm" onclick="printOrderLabel(${id})">🏷️</button>
                             <button class="btn-info    btn-sm" onclick="reportFailedPrint(${id})">⚠️</button>
-                            <button class="btn-danger  btn-sm" onclick="deleteOrder(${id})">🗑️</button>
+                            <button class="btn-danger  btn-sm" onclick="openAttachments('orders',${id},'Pedido #${id}')"><i class="bi bi-paperclip"></i></button>
+                            <button class="btn-danger btn-sm" onclick="deleteOrder(${id})">🗑️</button>
                         </div>
                     </div>`;
             }
@@ -221,7 +211,7 @@ function showOrderNotes(orderId) {
     document.getElementById('modalTitle').innerHTML = `📝 Notas — Pedido #${orderId}`;
     document.getElementById('modalBody').innerHTML = `
         <div style="max-height:280px;overflow-y:auto;margin-bottom:14px;">${listHtml}</div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Nova nota</label>
             <textarea id="newOrderNote" rows="3" style="width:100%;resize:vertical;"
                 placeholder="Ex.: Cliente pediu cor diferente, aguardando aprovação..."></textarea>
@@ -249,7 +239,7 @@ function registerPayment(orderId, totalPrice, paidSoFar) {
             <strong>Já recebido:</strong> R$ ${Number(paidSoFar).toFixed(2)}<br>
             <strong>Saldo:</strong> R$ ${Math.max(0, totalPrice - paidSoFar).toFixed(2)}
         </div>
-        <div class="input-group">
+        <div class="field-group">
             <label>Valor recebido agora (R$)</label>
             <input type="number" id="paymentAmount" value="${Math.max(0, totalPrice - paidSoFar).toFixed(2)}" min="0" step="0.01">
         </div>
@@ -290,11 +280,8 @@ function printOrderLabel(orderId) {
     if (!r.length || !r[0].values.length) return;
     const [id, wt, mat, weight, pt, qty, total, status, date, notes,
            cName, cPhone, cAddr, cCity] = r[0].values[0];
-
-    const workTypeNames = { simple:'Brinde Simples', personalized:'Personalizado',
-        technical:'Peça Técnica', custom:'Sob Medida' };
-    const statusNames   = { quote:'Orçamento', approved:'Aprovado', paid:'Pago', printing:'Imprimindo',
-        post:'Pós-proc.', packaging:'Embalagem', shipped:'Enviado', delivered:'Entregue', cancelled:'Cancelado' };
+    const workTypeNames = WORK_TYPE_NAMES;
+    const statusNames = STATUS_NAMES;
 
     const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Etiqueta #${id}</title>
@@ -414,8 +401,10 @@ function restoreOrder(orderId) {
 }
 
 function hardDeleteOrder(orderId) {
-    if (confirm('Apagar permanentemente? Esta ação não pode ser desfeita.')) {
-        db.run('DELETE FROM orders WHERE id = ?', [orderId]);
+    if (confirm('Mover este pedido para a lixeira?')) {
+        const old=dbRowObject('SELECT * FROM orders WHERE id=?',[orderId]);
+        db.run('UPDATE orders SET deleted_at=? WHERE id = ?', [new Date().toISOString(), orderId]);
+        auditLog('orders',orderId,'soft_delete',old,null);
         persistDB();
         loadOrders();
         updateDashboard();
@@ -424,25 +413,58 @@ function hardDeleteOrder(orderId) {
 }
 
 function reportFailedPrint(orderId) {
-    const reason = prompt('Descreva o motivo da falha:');
-    if (!reason || !reason.trim()) return;
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    if (!title || !body) {
+        showToast('Não foi possível abrir o formulário de falha.');
+        return;
+    }
 
-    const lostInput = prompt('Quantos gramas de material foram perdidos? (0 se não souber)');
-    const materialLost = Math.max(0, parseFloat(lostInput) || 0);
+    title.textContent = `Registrar falha — Pedido #${orderId}`;
+    body.innerHTML = `
+        <form id="failedPrintForm" onsubmit="saveFailedPrintReport(event, ${orderId})">
+            <div class="form-group">
+                <label for="failedPrintReason">Motivo da falha *</label>
+                <textarea id="failedPrintReason" rows="4" maxlength="500" required
+                    placeholder="Ex.: descolamento da mesa, quebra de suporte, falta de energia..."></textarea>
+                <small>Descreva o ocorrido para facilitar análises futuras.</small>
+            </div>
+            <div class="form-group">
+                <label for="failedPrintMaterial">Material perdido (g)</label>
+                <input id="failedPrintMaterial" type="number" min="0" step="0.1" value="0" inputmode="decimal">
+                <small>O valor será descontado automaticamente do estoque.</small>
+            </div>
+            <div class="modal-actions" style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+                <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn-danger">Registrar falha</button>
+            </div>
+        </form>`;
+    openModal();
+    setTimeout(() => document.getElementById('failedPrintReason')?.focus(), 0);
+}
 
-    // Obtém material_id do pedido para descontar do estoque
+function saveFailedPrintReport(event, orderId) {
+    event.preventDefault();
+    const reason = document.getElementById('failedPrintReason')?.value?.trim() || '';
+    const materialLost = Math.max(0, Number(document.getElementById('failedPrintMaterial')?.value) || 0);
+    if (!reason) {
+        showToast('Informe o motivo da falha.');
+        document.getElementById('failedPrintReason')?.focus();
+        return;
+    }
+
     const orderRow = db.exec('SELECT material_id FROM orders WHERE id = ?', [orderId]);
     const materialId = orderRow[0]?.values[0]?.[0] || null;
-
     if (materialId && materialLost > 0) {
         updateStock(materialId, materialLost, 'falha_impressao', orderId,
-            `Falha no pedido #${orderId}: ${reason.trim().slice(0, 80)}`);
+            `Falha no pedido #${orderId}: ${reason.slice(0, 80)}`);
     }
 
     db.run('INSERT INTO failed_prints (order_id, fail_reason, material_lost, date) VALUES (?, ?, ?, ?)',
-        [orderId, reason.trim(), materialLost, new Date().toISOString()]);
-    persistDB();
-    showToast(`⚠️ Falha registrada${materialLost > 0 ? ` — ${materialLost}g deduzidos do estoque` : ''}.`);
+        [orderId, reason, materialLost, new Date().toISOString()]);
+    persistDBNow().catch(() => false);
+    closeModal();
+    showToast(`⚠️ Falha registrada${materialLost > 0 ? ` — ${formatDecimal(materialLost, 1)}g deduzidos do estoque` : ''}.`);
     loadMaterials();
     updateStatsBar();
 }
@@ -476,9 +498,8 @@ function renderPrintQueue() {
         byPrinter[pId].items.push(r);
         byPrinter[pId].totalH += (parseFloat(r[4]) || 0) * (parseInt(r[5]) || 1);
     });
-
-    const workTypeNames = { simple:'Brinde', personalized:'Personal.', technical:'Técnica', custom:'Sob Medida' };
-    const statusNames   = { approved:'Aprovado', paid:'Pago', printing:'🖨️ Imprimindo' };
+    const workTypeNames = WORK_TYPE_NAMES;
+    const statusNames   = STATUS_NAMES;
 
     let html = '';
     Object.values(byPrinter).forEach(({ name: pName, items, totalH }) => {
@@ -539,18 +560,27 @@ function importOrdersFromCSV() {
             }
             cols.push(cur.trim());
 
-            // Formato esperado (mesmo da exportação):
-            // ID, Cliente, Tipo, Material, Peso(g), Tempo(h), Qtd, Preço Unit, Total, Status, Data
+            // Formato atual:
+            // ID, Cliente, Tipo, Material, Peso(g), Tempo(h), Qtd, Preço Unit, Total, Valor Pago, Lucro, Status, Data
+            // Também aceita o formato antigo sem Valor Pago e Lucro.
             if (cols.length < 8) { skipped++; return; }
 
-            const [, clientName, workType, materialName, weightRaw, printTimeRaw,
-                   qtyRaw, unitPriceRaw, totalPriceRaw, status, dateRaw] = cols;
+            let clientName, workType, materialName, weightRaw, printTimeRaw, qtyRaw, unitPriceRaw, totalPriceRaw, paidRaw, profitRaw, status, dateRaw;
+            if (cols.length >= 13) {
+                [, clientName, workType, materialName, weightRaw, printTimeRaw, qtyRaw, unitPriceRaw, totalPriceRaw, paidRaw, profitRaw, status, dateRaw] = cols;
+            } else {
+                [, clientName, workType, materialName, weightRaw, printTimeRaw, qtyRaw, unitPriceRaw, totalPriceRaw, status, dateRaw] = cols;
+                paidRaw = '0'; profitRaw = '';
+            }
 
             const weight    = parseFloat(weightRaw)    || 0;
             const printTime = parseFloat(printTimeRaw) || 0;
             const qty       = parseInt(qtyRaw)         || 1;
             const unitPrice = parseFloat(unitPriceRaw) || 0;
             const totalPrice= parseFloat(totalPriceRaw)|| 0;
+            const paidAmount= parseFloat(paidRaw) || 0;
+            const parsedProfit = parseFloat(profitRaw);
+            const profit = Number.isFinite(parsedProfit) ? parsedProfit : null;
             const orderDate = dateRaw ? new Date(dateRaw).toISOString() : new Date().toISOString();
             const validStatus = STATUS_NAMES[status] ? status : 'quote';
 
@@ -564,11 +594,11 @@ function importOrdersFromCSV() {
             try {
                 db.run(`INSERT INTO orders
                     (client_id, work_type, material_name, weight, print_time,
-                     quantity, unit_price, total_price, profit, status, date, notes)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+                     quantity, unit_price, total_price, paid_amount, profit, status, date, notes)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
                     [clientId, workType || 'simple', materialName || '',
-                     weight, printTime, qty, unitPrice, totalPrice,
-                     0, validStatus, orderDate, 'Importado via CSV']);
+                     weight, printTime, qty, unitPrice, totalPrice, paidAmount,
+                     profit, validStatus, orderDate, 'Importado via CSV']);
                 imported++;
             } catch(_) { skipped++; }
         });
@@ -605,7 +635,7 @@ function updateStock(materialId, gramsUsed, movementType = 'ajuste', orderId = n
 function exportOrdersToCSV() {
     const orders = db.exec(`SELECT o.id, c.name, o.work_type, o.material_name,
                                    o.weight, o.print_time, o.quantity,
-                                   o.unit_price, o.total_price, o.status, o.date
+                                   o.unit_price, o.total_price, o.paid_amount, o.profit, o.status, o.date
                             FROM orders o
                             LEFT JOIN clients c ON o.client_id = c.id
                             WHERE o.deleted_at IS NULL`);
@@ -613,7 +643,7 @@ function exportOrdersToCSV() {
         showToast('Nenhum pedido para exportar');
         return;
     }
-    const header = 'ID,Cliente,Tipo,Material,Peso(g),Tempo(h),Qtd,Preço Unit,Total,Status,Data\n';
+    const header = 'ID,Cliente,Tipo,Material,Peso(g),Tempo(h),Qtd,Preço Unit,Total,Valor Pago,Lucro,Status,Data\n';
     const rows = orders[0].values.map(o => o.map(v => `"${v ?? ''}"`).join(',')).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');

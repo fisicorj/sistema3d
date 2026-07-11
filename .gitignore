@@ -1,0 +1,47 @@
+# ── Dados de usuário (nunca commitar) ──────────────────────────────────────
+# Ignora tudo dentro de app_data/, mas preserva o diretório no repo
+app_data/*
+!app_data/.gitkeep
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# ── Ambientes virtuais ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Variáveis de ambiente / segredos ────────────────────────────────────────
+.env
+.env.*
+*.env
+
+# ── Bancos de dados locais ───────────────────────────────────────────────────
+*.sqlite
+*.sqlite3
+*.db
+
+# ── Sistema operacional ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editores e IDEs ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~

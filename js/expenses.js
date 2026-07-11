@@ -1,11 +1,65 @@
 // ==================== DESPESAS ====================
 
+
+function addMonthsISO(dateStr, months) {
+    const d = new Date(`${dateStr}T12:00:00`);
+    const originalDay = d.getDate();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + months);
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(originalDay, lastDay));
+    return d.toISOString().slice(0, 10);
+}
+
+function addYearsISO(dateStr, years) {
+    const d = new Date(`${dateStr}T12:00:00`);
+    const month = d.getMonth();
+    d.setFullYear(d.getFullYear() + years);
+    if (d.getMonth() !== month) d.setDate(0);
+    return d.toISOString().slice(0, 10);
+}
+
+function ensureRecurringExpenses(monthsAhead = 12) {
+    try {
+        const recurring = db.exec(`SELECT id, category, description, amount, recurrence, date
+            FROM expenses
+            WHERE recurrence IN ('monthly','yearly') AND recurrence_parent_id IS NULL`);
+        if (!recurring.length) return false;
+        const horizon = new Date();
+        horizon.setMonth(horizon.getMonth() + monthsAhead);
+        const horizonISO = horizon.toISOString().slice(0, 10);
+        let changed = false;
+        for (const [id, category, description, amount, recurrence, startDate] of recurring[0].values) {
+            let occurrence = recurrence === 'monthly' ? addMonthsISO(startDate, 1) : addYearsISO(startDate, 1);
+            let index = 1;
+            while (occurrence <= horizonISO && index <= 120) {
+                const key = `${id}:${occurrence}`;
+                db.run(`INSERT OR IGNORE INTO expenses
+                    (category, description, amount, recurrence, date, recurrence_parent_id, recurrence_key)
+                    VALUES (?,?,?,?,?,?,?)`,
+                    [category, description, amount, 'once', occurrence, id, key]);
+                const n = db.getRowsModified ? db.getRowsModified() : 0;
+                if (n > 0) changed = true;
+                occurrence = recurrence === 'monthly' ? addMonthsISO(occurrence, 1) : addYearsISO(occurrence, 1);
+                index++;
+            }
+        }
+        if (changed) persistDB();
+        return changed;
+    } catch (error) {
+        console.warn('Falha ao expandir despesas recorrentes:', error);
+        return false;
+    }
+}
+
+
 const EXPENSE_CATEGORIES = ['Filamento', 'Energia', 'Manutenção', 'Aluguel',
     'Software/Assinatura', 'Marketing', 'Embalagem', 'Logística', 'Equipamento', 'Geral'];
 
 const RECURRENCE_LABELS = { once:'Única', monthly:'Mensal', yearly:'Anual' };
 
 function loadExpenses() {
+    ensureRecurringExpenses();
     // Preenche filtro de período com meses disponíveis
     const months = db.exec(
         `SELECT DISTINCT strftime('%Y-%m', date) AS m FROM expenses ORDER BY m DESC`
@@ -31,11 +85,11 @@ function loadExpenses() {
     const period = filterEl?.value || 'all';
     let query, params;
     if (period !== 'all') {
-        query = `SELECT id, category, description, amount, recurrence, date
+        query = `SELECT id, category, description, amount, recurrence, date, recurrence_parent_id
                  FROM expenses WHERE strftime('%Y-%m', date) = ? ORDER BY date DESC`;
         params = [period];
     } else {
-        query = `SELECT id, category, description, amount, recurrence, date
+        query = `SELECT id, category, description, amount, recurrence, date, recurrence_parent_id
                  FROM expenses ORDER BY date DESC`;
         params = [];
     }
@@ -54,7 +108,7 @@ function loadExpenses() {
     const byCat = {};
     let tableRows = '';
 
-    rows[0].values.forEach(([id, cat, desc, amount, recur, date]) => {
+    rows[0].values.forEach(([id, cat, desc, amount, recur, date, recurrenceParentId]) => {
         total += parseFloat(amount) || 0;
         byCat[cat] = (byCat[cat] || 0) + (parseFloat(amount) || 0);
         tableRows += `<tr>
@@ -62,7 +116,7 @@ function loadExpenses() {
             <td><span style="background:rgba(0,174,66,.15);color:var(--primary);padding:2px 8px;border-radius:10px;font-size:0.78em;">${h(cat)}</span></td>
             <td>${h(desc)}</td>
             <td>R$ ${Number(amount).toFixed(2)}</td>
-            <td style="color:var(--text-muted);font-size:0.82em;">${RECURRENCE_LABELS[recur]||recur}</td>
+            <td style="color:var(--text-muted);font-size:0.82em;">${recurrenceParentId ? 'Gerada automaticamente' : (RECURRENCE_LABELS[recur]||recur)}</td>
             <td>
                 <button class="btn-warning btn-sm" onclick="showExpenseModal(${id})">✏️</button>
                 <button class="btn-danger  btn-sm" onclick="deleteExpense(${id})">🗑️</button>
@@ -100,7 +154,7 @@ function loadExpenses() {
 function showExpenseModal(expenseId = null) {
     let data = {};
     if (expenseId) {
-        const r = db.exec('SELECT * FROM expenses WHERE id = ?', [expenseId]);
+        const r = db.exec('SELECT id, category, description, amount, recurrence, date FROM expenses WHERE id = ?', [expenseId]);
         if (r.length && r[0].values.length) {
             const [id, cat, desc, amount, recur, date] = r[0].values[0];
             data = { id, cat, desc, amount, recur, date: date?.slice(0,10) };
@@ -113,19 +167,19 @@ function showExpenseModal(expenseId = null) {
 
     document.getElementById('modalTitle').innerHTML = expenseId ? '✏️ Editar Despesa' : '➕ Nova Despesa';
     document.getElementById('modalBody').innerHTML = `
-        <div class="input-group"><label>Categoria</label>
+        <div class="field-group"><label>Categoria</label>
             <select id="expCat">${catOptions}</select></div>
-        <div class="input-group"><label>Descrição</label>
+        <div class="field-group"><label>Descrição</label>
             <input type="text" id="expDesc" value="${h(data.desc||'')}" placeholder="Ex.: Conta de luz, Bambu Cloud..."></div>
-        <div class="input-group"><label>Valor (R$)</label>
+        <div class="field-group"><label>Valor (R$)</label>
             <input type="number" id="expAmount" value="${data.amount||''}" min="0" step="0.01"></div>
-        <div class="input-group"><label>Recorrência</label>
+        <div class="field-group"><label>Recorrência</label>
             <select id="expRecur">
                 <option value="once"    ${data.recur==='once'   ?'selected':''}>Única (não se repete)</option>
                 <option value="monthly" ${data.recur==='monthly'?'selected':''}>Mensal</option>
                 <option value="yearly"  ${data.recur==='yearly' ?'selected':''}>Anual</option>
             </select></div>
-        <div class="input-group"><label>Data</label>
+        <div class="field-group"><label>Data</label>
             <input type="date" id="expDate" value="${data.date || new Date().toISOString().slice(0,10)}"></div>
         ${expenseId ? `<input type="hidden" id="expId" value="${expenseId}">` : ''}
         <button class="btn-primary" onclick="saveExpense(${expenseId?'true':'false'})" style="margin-top:12px;">
@@ -149,10 +203,13 @@ function saveExpense(isEdit = false) {
         const id = parseInt(document.getElementById('expId')?.value);
         db.run('UPDATE expenses SET category=?,description=?,amount=?,recurrence=?,date=? WHERE id=?',
             [cat, desc, amount, recur, date, id]);
+        db.run('DELETE FROM expenses WHERE recurrence_parent_id=? AND date>=?', [id, new Date().toISOString().slice(0,10)]);
+        ensureRecurringExpenses();
         showToast('✅ Despesa atualizada!');
     } else {
         db.run('INSERT INTO expenses (category,description,amount,recurrence,date) VALUES (?,?,?,?,?)',
             [cat, desc, amount, recur, date]);
+        ensureRecurringExpenses();
         showToast('✅ Despesa salva!');
     }
     persistDB();
@@ -162,6 +219,9 @@ function saveExpense(isEdit = false) {
 
 function deleteExpense(id) {
     if (confirm('Excluir esta despesa?')) {
+        // Deleta apenas ocorrências futuras (a partir de hoje); preserva histórico passado já registrado.
+        const today = new Date().toISOString().slice(0, 10);
+        db.run('DELETE FROM expenses WHERE recurrence_parent_id = ? AND date >= ?', [id, today]);
         db.run('DELETE FROM expenses WHERE id = ?', [id]);
         persistDB();
         loadExpenses();

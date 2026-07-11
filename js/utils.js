@@ -24,32 +24,60 @@ function setOptions(selectEl, rows, formatter, keepValue = false) {
 }
 
 // ---------- Toast notification ----------
-let toastTimer = null;
-function showToast(msg) {
-    let el = document.getElementById('toast');
-    if (!el) {
-        el = document.createElement('div');
-        el.id = 'toast';
-        el.style.cssText = `
-            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
-            background:#333; color:#fff; padding:12px 24px; border-radius:8px;
-            font-size:0.9em; z-index:9999; opacity:0; transition:opacity 0.3s;
-        `;
-        document.body.appendChild(el);
+function showToast(msg, type = 'success') {
+    const container = document.getElementById('toastContainer') || document.body;
+    const toastEl = document.createElement('div');
+    const tone = /erro|falha|❌/i.test(msg) ? 'danger' : /atenção|aviso|⚠️/i.test(msg) ? 'warning' : type;
+    toastEl.className = `toast align-items-center border-0 text-bg-${tone}`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.innerHTML = `<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fechar"></button></div>`;
+    toastEl.querySelector('.toast-body').textContent = msg;
+    container.appendChild(toastEl);
+    if (window.bootstrap?.Toast) {
+        const toast = new bootstrap.Toast(toastEl, { delay: 2800 });
+        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        toast.show();
+    } else {
+        toastEl.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:9999;padding:12px 16px;background:#172033;color:white;border-radius:10px';
+        setTimeout(() => toastEl.remove(), 2800);
     }
-    el.textContent = msg;
-    el.style.opacity = '1';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2500);
 }
 
 // ---------- Modal ----------
+let _genericBootstrapModal = null;
+
+// Atalho usado por sprint5.js (Anexos): seta título + corpo e abre o modal genérico.
+function showModal(title, body) {
+    const t = document.getElementById('modalTitle');
+    const b = document.getElementById('modalBody');
+    if (t) t.innerHTML = title;
+    if (b) b.innerHTML = body;
+    openModal();
+}
+
 function openModal() {
-    document.getElementById('modal').style.display = 'flex';
+    const el = document.getElementById('modal');
+    if (!el) return;
+    if (window.bootstrap?.Modal) {
+        _genericBootstrapModal = bootstrap.Modal.getOrCreateInstance(el, { backdrop: true, keyboard: true });
+        _genericBootstrapModal.show();
+    } else {
+        el.style.display = 'block';
+        el.classList.add('show');
+    }
 }
 
 function closeModal() {
-    document.getElementById('modal').style.display = 'none';
+    const el = document.getElementById('modal');
+    if (!el) return;
+    if (window.bootstrap?.Modal) {
+        (bootstrap.Modal.getInstance(el) || _genericBootstrapModal)?.hide();
+    } else {
+        el.style.display = 'none';
+        el.classList.remove('show');
+    }
 }
 
 // ---------- Debounce ----------
@@ -71,19 +99,24 @@ function switchTab(tabId, event) {
     if (btn) btn.classList.add('active');
 
     if (tabId === 'orders')     { loadOrders(); if (typeof renderPrintQueue === 'function') renderPrintQueue(); }
+    if (tabId === 'production') { if (typeof loadProductionBoard === 'function') loadProductionBoard(); }
+    if (tabId === 'finance')    { if (typeof loadFinanceDashboard === 'function') loadFinanceDashboard(); }
+    if (tabId === 'consignments') { if (typeof loadConsignments === 'function') loadConsignments(); }
     if (tabId === 'products')   loadProducts();
     if (tabId === 'marketplaces') loadMarketplaces();
     if (tabId === 'clients')    loadClients();
     if (tabId === 'inventory')  loadMaterials();
-    if (tabId === 'printers')   loadPrinters();
+    if (tabId === 'printers')   { loadPrinters(); if (typeof loadPrinterDashboard === 'function') loadPrinterDashboard(); }
     if (tabId === 'packaging')  loadPackaging();
     if (tabId === 'addons')     loadAddons();
     if (tabId === 'calculator') updatePriceCalculation();
-    if (tabId === 'settings' || tabId === 'melhor-envio-settings') {
+    if (tabId === 'insights')   { if (typeof loadInsights === 'function') loadInsights(); }
+    if (tabId === 'settings') {
         if (typeof loadMelhorEnvioConfig === 'function') loadMelhorEnvioConfig();
     }
     if (tabId === 'expenses')    { if (typeof loadExpenses    === 'function') loadExpenses(); }
     if (tabId === 'maintenance') { if (typeof loadMaintenance === 'function') loadMaintenance(); }
+    if (typeof Phase2UI !== 'undefined') Phase2UI.updateBadge();
     if (tabId === 'dashboard') {
         updateDashboard();
         updateStatsBar();
@@ -122,15 +155,18 @@ function setupEventListeners() {
         'settingLossRate', 'settingPackagingCost',
         'settingMaintenancePerHour', 'settingFailRate', 'settingTaxRate',
         'settingMonthlyGoal', 'settingAlertDays',
+        'settingBrandName', 'settingQuoteValidityDays',
     ].forEach(id => {
         const el = document.getElementById(id);
         el?.addEventListener('input', debouncedSaveSettings);
         el?.addEventListener('change', saveSettingsNow);
     });
 
-    // Fechar modal ao clicar no fundo
-    document.getElementById('modal').addEventListener('click', e => {
-        if (e.target === document.getElementById('modal')) closeModal();
+    // Bootstrap gerencia clique no backdrop e tecla ESC.
+    const modalEl = document.getElementById('modal');
+    modalEl?.addEventListener('hidden.bs.modal', () => {
+        const body = document.getElementById('modalBody');
+        if (body) body.innerHTML = '';
     });
 
     // Inicializa embalagens e adicionais na calculadora
@@ -173,6 +209,9 @@ function restoreBackup() {
         loadOrders();
         if (typeof loadProducts === 'function') loadProducts();
         if (typeof loadMarketplaces === 'function') loadMarketplaces();
+        if (typeof loadMaintenance === 'function') loadMaintenance();
+        if (typeof loadExpenses === 'function') loadExpenses();
+        if (typeof loadQuotes === 'function') loadQuotes();
         updateDashboard();
         updateStatsBar();
         updateAlertSystem();
@@ -465,101 +504,6 @@ async function shareQuoteNative() {
 
 function generateShareableHTML() {
     downloadShareableHTML();
-}
-
-// Mantida para compatibilidade — usada pelo botão "Baixar para Compartilhar"
-function _generateShareableHTML_legacy() {
-    const p = calculatePrice();
-
-    var filamentRows = '';
-    if (p.filamentBreakdown && p.filamentBreakdown.length > 1) {
-        p.filamentBreakdown.forEach(function(b) {
-            filamentRows += '<tr><td style="padding-left:16px;color:#555;">' + b.label + ' (' + b.weight.toFixed(1) + 'g)</td>'
-                + '<td style="text-align:right">R$ ' + b.cost.toFixed(2) + '</td></tr>';
-        });
-    }
-
-    var badgeList = [];
-    if (p.failRate > 0)       badgeList.push('Cobertura de falhas ' + (p.failRate*100).toFixed(0) + '%');
-    if (p.urgencyPct > 0)     badgeList.push('Urgência +' + p.urgencyPct + '%');
-    if (p.platformFeePct > 0) badgeList.push('Taxa marketplace ' + (p.platformFeePct*100).toFixed(0) + '%');
-    if (p.bulkDiscount > 0)   badgeList.push('Desconto lote −' + (p.bulkDiscount*100).toFixed(0) + '%');
-
-    var shipLabel = 'Frete estimado';
-    if (p.shippingInfo) shipLabel = p.shippingInfo.source === 'melhor_envio'
-        ? 'Frete Melhor Envio — ' + p.shippingInfo.region
-        : 'Frete ' + p.shippingInfo.uf + '/' + p.shippingInfo.region;
-
-    var now = new Date();
-    var validity = new Date(now);
-    validity.setDate(validity.getDate() + 15);
-
-    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
-        + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        + '<title>Orçamento — ' + now.toLocaleDateString('pt-BR') + '</title>'
-        + '<style>'
-        + '*{box-sizing:border-box;margin:0;padding:0}'
-        + 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#222;padding:16px}'
-        + '.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)}'
-        + '.brand{color:#00AE42;font-size:1.3em;font-weight:800}'
-        + '.price-box{background:#00AE42;color:#fff;border-radius:12px;padding:18px;text-align:center;margin-bottom:14px}'
-        + '.price-box .label{font-size:.85em;opacity:.88}'
-        + '.price-box .value{font-size:2em;font-weight:900;letter-spacing:-1px}'
-        + '.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:.88em}'
-        + '.row:last-child{border:none}'
-        + '.row .lbl{color:#555}'
-        + '.row .val{font-weight:600}'
-        + '.section{font-weight:700;font-size:.8em;text-transform:uppercase;color:#00AE42;padding:10px 0 4px;letter-spacing:.5px}'
-        + '.badge{display:inline-block;background:#e8f5e9;color:#1a5c2a;border:1px solid #a8d5b5;border-radius:20px;padding:3px 10px;font-size:.75em;margin:2px}'
-        + '.footer{text-align:center;color:#999;font-size:.75em;margin-top:8px}'
-        + '.total-row .val{color:#00AE42;font-size:1.1em}'
-        + '</style></head><body>'
-
-        + '<div class="card">'
-        + '<div class="brand">🖨️ 3D Print Pro</div>'
-        + '<div style="color:#888;font-size:.82em;margin-top:2px;">Orçamento gerado em ' + now.toLocaleString('pt-BR') + '</div>'
-        + '</div>'
-
-        + '<div class="price-box">'
-        + '<div class="label">💰 Total a pagar</div>'
-        + '<div class="value">R$ ' + p.totalWithShipping.toFixed(2).replace('.',',') + '</div>'
-        + '<div style="font-size:.8em;opacity:.85;margin-top:4px;">' + p.quantity + 'x · Frete incluído</div>'
-        + '</div>'
-
-        + '<div class="card">'
-        + '<div class="section">Detalhes do projeto</div>'
-        + '<div class="row"><span class="lbl">Tipo</span><span class="val">' + p.workTypeLabel + '</span></div>'
-        + '<div class="row"><span class="lbl">Material</span><span class="val">' + p.materialLabel + '</span></div>'
-        + '<div class="row"><span class="lbl">Peso</span><span class="val">' + p.weight.toFixed(1) + 'g</span></div>'
-        + '<div class="row"><span class="lbl">Tempo de impressão</span><span class="val">' + p.printTimeHuman + '</span></div>'
-        + '<div class="row"><span class="lbl">Quantidade</span><span class="val">' + p.quantity + 'x</span></div>'
-        + '</div>'
-
-        + '<div class="card">'
-        + '<div class="section">Composição do preço</div>'
-        + '<div class="row"><span class="lbl">Preço unitário</span><span class="val">R$ ' + p.finalPrice.toFixed(2) + '</span></div>'
-        + (p.platformFeePct > 0 ? '<div class="row"><span class="lbl">Taxa marketplace (−' + (p.platformFeePct*100).toFixed(0) + '%)</span><span class="val" style="color:#e53e3e;">−R$ ' + p.platformFeeAmount.toFixed(2) + '</span></div>' : '')
-        + (p.bulkDiscount > 0 ? '<div class="row"><span class="lbl">Desconto por lote</span><span class="val" style="color:#e53e3e;">−R$ ' + (p.priceBeforeDiscount * p.bulkDiscount).toFixed(2) + '</span></div>' : '')
-        + '<div class="row"><span class="lbl">Subtotal (' + p.quantity + 'x)</span><span class="val">R$ ' + p.totalPrice.toFixed(2) + '</span></div>'
-        + '<div class="row"><span class="lbl">' + shipLabel + '</span><span class="val">R$ ' + p.shippingCost.toFixed(2) + '</span></div>'
-        + '<div class="row total-row"><span class="lbl"><strong>TOTAL</strong></span><span class="val"><strong>R$ ' + p.totalWithShipping.toFixed(2) + '</strong></span></div>'
-        + '</div>'
-
-        + (badgeList.length ? '<div class="card">' + badgeList.map(function(b){return '<span class="badge">'+b+'</span>';}).join('') + '</div>' : '')
-
-        + '<div class="footer">'
-        + '<p>Validade: ' + validity.toLocaleDateString('pt-BR') + ' · Gerado por 3D Print Pro</p>'
-        + '</div></body></html>';
-
-    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'orcamento_' + now.toISOString().slice(0,10) + '.html';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 30000);
-    showToast('✅ HTML gerado! Envie o arquivo pelo WhatsApp ou e-mail.');
 }
 
 // ---------- Exportar orçamento como PDF (impressão) ----------
