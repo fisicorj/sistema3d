@@ -111,25 +111,14 @@ O sistema pode ser usado totalmente em um único computador com SQLite ou conect
 
 ## Capturas de tela
 
-Adicione capturas reais do projeto em uma pasta como `docs/screenshots/` e substitua os caminhos abaixo.
+
 
 ```md
 ![Dashboard](docs/screenshots/dashboard.png)
 ![Calculadora](docs/screenshots/calculadora.png)
 ![Produção](docs/screenshots/producao.png)
-![Radar de Produtos](docs/screenshots/radar.png)
+![Radar de Produtos](docs/screenshots/radardeprodutos.png)
 ```
-
-Sugestão de imagens para o repositório:
-
-1. Dashboard executivo;
-2. Calculadora lado a lado;
-3. Tela de pedidos;
-4. Kanban de produção;
-5. Telemetria das impressoras;
-6. Controle de consignações;
-7. Radar de Produtos;
-8. Configurações de banco de dados.
 
 ---
 
@@ -266,8 +255,8 @@ sudo apt install python3 python3-pip python3-venv unixodbc unixodbc-dev
 ## Instalação rápida
 
 ```bash
-git clone https://github.com/SEU-USUARIO/SEU-REPOSITORIO.git
-cd SEU-REPOSITORIO
+git clone https://github.com/fisicorj/sistema3d.git
+cd sistema3d
 python -m venv .venv
 ```
 
