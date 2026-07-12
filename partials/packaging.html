@@ -1,0 +1,40 @@
+<div class="s3d-packaging-page">
+  <div class="app-page-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <span class="s3d-page-icon bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></span>
+      <div>
+        <h1 class="h3 mb-1">Embalagens</h1>
+        <p class="text-body-secondary mb-0">Cadastre custos e pesos usados na precificação e na cotação de frete.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary d-inline-flex align-items-center gap-2" type="button" onclick="showPackagingModal()">
+      <i class="bi bi-plus-lg"></i><span>Nova embalagem</span>
+    </button>
+  </div>
+
+  <div id="packagingSummary" class="row g-3 mb-4"></div>
+
+  <section class="card border shadow-sm overflow-hidden">
+    <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+      <div>
+        <h2 class="h5 mb-1">Catálogo de embalagens</h2>
+        <p class="text-body-secondary small mb-0">A embalagem selecionada será somada ao custo e ao peso final do projeto.</p>
+      </div>
+      <span class="badge text-bg-light border" id="packagingTableCount">0 embalagens</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Embalagem</th>
+            <th scope="col">Descrição</th>
+            <th scope="col" class="text-end">Custo</th>
+            <th scope="col" class="text-end">Peso</th>
+            <th scope="col" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="packagingTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>

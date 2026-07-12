@@ -1,0 +1,207 @@
+/* Sistema3D — refinamento de contraste sobre Bootstrap 5.3.
+   Somente tokens visuais e ajustes de legibilidade; componentes continuam Bootstrap. */
+:root,
+[data-bs-theme="light"] {
+  --bs-body-color: #1f2937;
+  --bs-secondary-color: #596579;
+  --bs-tertiary-color: #6b7280;
+  --bs-border-color: #c4ccd6;
+  --bs-border-color-translucent: rgba(31, 41, 55, .18);
+  --bs-secondary-bg: #eef1f5;
+  --bs-tertiary-bg: #f5f7fa;
+  --bs-emphasis-color: #111827;
+  --s3d-card-border: #cbd3dd;
+  --s3d-table-line: #c7cfd9;
+  --s3d-subtle-surface: #f7f8fa;
+}
+
+[data-bs-theme="dark"] {
+  --bs-body-color: #e7ebf0;
+  --bs-secondary-color: #b2bdca;
+  --bs-tertiary-color: #96a3b3;
+  --bs-border-color: #556273;
+  --bs-border-color-translucent: rgba(231, 235, 240, .22);
+  --bs-secondary-bg: #252d38;
+  --bs-tertiary-bg: #1d2430;
+  --bs-emphasis-color: #ffffff;
+  --s3d-card-border: #4d5a6c;
+  --s3d-table-line: #4a5666;
+  --s3d-subtle-surface: #1d2430;
+}
+
+/* Bordas e superfícies: mais definição sem pesar. */
+.card,
+.modal-content,
+.offcanvas,
+.dropdown-menu,
+.list-group-item,
+.accordion-item {
+  border-color: var(--s3d-card-border) !important;
+}
+
+.card.border-0,
+.modal-content,
+.offcanvas {
+  box-shadow: 0 .125rem .5rem rgba(15, 23, 42, .10);
+}
+
+[data-bs-theme="dark"] .card.border-0,
+[data-bs-theme="dark"] .modal-content,
+[data-bs-theme="dark"] .offcanvas {
+  box-shadow: 0 .125rem .6rem rgba(0, 0, 0, .30);
+}
+
+hr,
+.border,
+.border-top,
+.border-bottom,
+.border-start,
+.border-end {
+  border-color: var(--bs-border-color) !important;
+}
+
+/* Formulários com contorno legível. */
+.form-control,
+.form-select,
+.form-check-input,
+.input-group-text {
+  border-color: var(--bs-border-color);
+}
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .20);
+}
+.form-control::placeholder { color: var(--bs-tertiary-color); opacity: 1; }
+.form-control:disabled,
+.form-select:disabled { opacity: .72; }
+
+/* Botões: contraste explícito para evitar texto branco em fundo claro. */
+.btn { font-weight: 500; }
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-info,
+.btn-secondary {
+  color: #fff;
+}
+.btn-warning { color: #212529; }
+.btn-light {
+  color: #212529;
+  border-color: #aeb7c2;
+  background-color: #f8f9fa;
+}
+.btn-light:hover,
+.btn-light:focus {
+  color: #111827;
+  background-color: #e9ecef;
+  border-color: #8f9aa7;
+}
+.btn-outline-secondary {
+  color: #3f4b5b;
+  border-color: #7b8796;
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus,
+.btn-outline-secondary.active {
+  color: #fff;
+  background-color: #596579;
+  border-color: #596579;
+}
+.btn-outline-primary { color: #0759d1; border-color: #0b6ef3; }
+.btn-outline-success { color: #116a42; border-color: #198754; }
+.btn-outline-danger { color: #b42332; border-color: #dc3545; }
+
+[data-bs-theme="dark"] .btn-light {
+  color: #e7ebf0;
+  background-color: #303a47;
+  border-color: #687587;
+}
+[data-bs-theme="dark"] .btn-light:hover,
+[data-bs-theme="dark"] .btn-light:focus {
+  color: #fff;
+  background-color: #3d4857;
+  border-color: #7d8a9c;
+}
+[data-bs-theme="dark"] .btn-outline-secondary {
+  color: #d2d9e2;
+  border-color: #8190a3;
+}
+[data-bs-theme="dark"] .btn-outline-secondary:hover,
+[data-bs-theme="dark"] .btn-outline-secondary:focus,
+[data-bs-theme="dark"] .btn-outline-secondary.active {
+  color: #111827;
+  background-color: #d2d9e2;
+  border-color: #d2d9e2;
+}
+[data-bs-theme="dark"] .btn-outline-primary { color: #8ebcff; border-color: #6aa6ff; }
+[data-bs-theme="dark"] .btn-outline-success { color: #75d6a8; border-color: #51bf8c; }
+[data-bs-theme="dark"] .btn-outline-danger { color: #ff9aa5; border-color: #ff7887; }
+
+.btn:disabled,
+.btn.disabled { opacity: .58; }
+
+/* Tabelas: linhas mais visíveis e cabeçalho definido. */
+.table {
+  --bs-table-border-color: var(--s3d-table-line);
+}
+.table > :not(caption) > * > * {
+  border-bottom-color: var(--s3d-table-line);
+}
+.table thead th,
+.table-light th {
+  color: var(--bs-emphasis-color);
+  background-color: var(--bs-secondary-bg) !important;
+  border-bottom-width: 2px;
+}
+.table-hover > tbody > tr:hover > * {
+  --bs-table-bg-state: rgba(var(--bs-primary-rgb), .065);
+}
+
+/* Navegação, abas e menus. */
+.nav-tabs { border-bottom-color: var(--bs-border-color); }
+.nav-tabs .nav-link { color: var(--bs-secondary-color); }
+.nav-tabs .nav-link:hover { color: var(--bs-emphasis-color); border-color: var(--bs-border-color); }
+.nav-tabs .nav-link.active {
+  color: var(--bs-emphasis-color);
+  background-color: var(--bs-body-bg);
+  border-color: var(--bs-border-color) var(--bs-border-color) var(--bs-body-bg);
+  font-weight: 600;
+}
+.nav-pills .nav-link:not(.active) { color: var(--bs-secondary-color); }
+.dropdown-item { color: var(--bs-body-color); }
+.dropdown-item:hover,
+.dropdown-item:focus { color: var(--bs-emphasis-color); background-color: var(--bs-secondary-bg); }
+
+/* Badges claros precisam de contorno para não sumirem. */
+.badge.text-bg-light,
+.badge.bg-light {
+  color: #263244 !important;
+  border: 1px solid #aeb8c5;
+}
+[data-bs-theme="dark"] .badge.text-bg-light,
+[data-bs-theme="dark"] .badge.bg-light {
+  color: #eef2f6 !important;
+  background-color: #35404e !important;
+  border-color: #718095;
+}
+
+/* Alertas e estados vazios. */
+.alert-light {
+  color: var(--bs-body-color);
+  background-color: var(--s3d-subtle-surface);
+  border-color: var(--bs-border-color);
+}
+.text-body-secondary,
+.text-secondary,
+.form-text,
+small { color: var(--bs-secondary-color) !important; }
+
+/* Foco acessível em qualquer ação. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid rgba(var(--bs-primary-rgb), .35);
+  outline-offset: 2px;
+}

@@ -1,0 +1,339 @@
+/* Sistema3D — camada estrutural mínima sobre Bootstrap 5.3
+   Apenas layout, quebra de conteúdo e componentes específicos do domínio. */
+
+:root {
+  --s3d-sidebar-width: 17.5rem;
+  --s3d-content-max: 100%;
+  --s3d-kanban-column: 19rem;
+}
+
+html, body { min-height: 100%; }
+body { overflow-x: hidden; }
+
+/* Estrutura principal */
+.app, .main, .app-content, .container-fluid, .tab-panel { min-width: 0; }
+.app-sidebar, #appSidebar { width: var(--s3d-sidebar-width); max-width: 88vw; }
+.main { width: calc(100% - var(--s3d-sidebar-width)); }
+.app-content { width: 100%; max-width: var(--s3d-content-max); }
+
+/* Todo filho de flex/grid precisa poder encolher sem sobrepor o vizinho. */
+.d-flex > *, .row > *, .card > *, .input-group > *, .navbar > * { min-width: 0; }
+
+/* Tipografia defensiva */
+h1, h2, h3, h4, h5, h6,
+.card-title, .form-label, .nav-link, .btn, .badge,
+.page-header, .section-title, .section-heading,
+.table td, .table th, .alert, .dropdown-item {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+p, small, .text-body-secondary { max-width: 100%; }
+
+/* Cabeçalhos de página */
+.page-header { width: 100%; }
+.page-header > div:first-child { flex: 1 1 20rem; }
+.page-header > .d-flex, .page-header .hero-actions { flex: 0 1 auto; }
+.page-header .btn { white-space: normal; }
+
+/* Barra superior e menu */
+.app-topbar { min-height: 3.75rem; }
+.topbar-left { flex: 1 1 auto; min-width: 0; }
+.topbar-title { min-width: 0; line-height: 1.15; }
+.topbar-title strong, .topbar-title small { display: block; }
+.topbar-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-right { flex: 0 0 auto; }
+.sidebar-nav .nav-link { white-space: normal; }
+.sidebar-nav .nav-icon { width: 1.5rem; flex: 0 0 1.5rem; }
+.sidebar-nav .nav-link > span:last-child { min-width: 0; }
+
+/* Cards e indicadores */
+.card { min-width: 0; }
+.card-body { min-width: 0; }
+.executive-card, .kpi-card {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+}
+.executive-card > i, .kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 2.5rem;
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+}
+.executive-card span, .kpi-card > div { min-width: 0; }
+.executive-card small, .kpi-card small, .kpi-card em { display: block; }
+.executive-card strong, .kpi-card strong {
+  display: block;
+  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  line-height: 1.2;
+}
+.kpi-card em { font-size: .75rem; font-style: normal; color: var(--bs-secondary-color); }
+
+.section-title, .card-title, .settings-card-header, .integration-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.section-title > *, .card-title > *, .settings-card-header > *, .integration-header > * { min-width: 0; }
+
+/* Dashboard */
+.dashboard-printer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+}
+.dashboard-printer-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  min-height: 7rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+}
+.mini-insights { display: grid; gap: .75rem; }
+.mini-insights > div { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.modern-bars, .bar-chart { min-height: 12rem; overflow-x: auto; }
+.alert-list-modern { display: grid; gap: .75rem; }
+
+/* Formulários */
+.field-group { min-width: 0; }
+.field-group > small, .form-text { display: block; margin-top: .35rem; color: var(--bs-secondary-color); }
+.input-group { flex-wrap: nowrap; }
+.input-group > .form-control, .input-group > .form-select { min-width: 0; }
+.password-field .btn { flex: 0 0 auto; }
+.form-check { min-height: 1.5rem; }
+.form-check-input { flex: 0 0 auto; }
+
+/* Abas: rolagem horizontal, nunca sobreposição */
+.nav-tabs, .nav-pills { max-width: 100%; }
+.nav-tabs.flex-nowrap, .nav-pills.flex-nowrap,
+.calc-tabs, .radar-tabs, .radar-editor-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.nav-tabs .nav-link, .nav-pills .nav-link { white-space: nowrap; }
+.tab-content, .tab-pane { min-width: 0; }
+
+/* Tabelas */
+.table-responsive, .table-container, .embedded-table { width: 100%; overflow-x: auto; }
+.table { min-width: 42rem; margin-bottom: 0; }
+.table th { white-space: nowrap; }
+.table td { vertical-align: middle; }
+.table td .btn-group, .table td .d-flex { flex-wrap: nowrap; }
+
+/* Calculadora */
+.calc-split > * { min-width: 0; }
+.calc-left, .calc-right { align-self: start; }
+.calc-right { position: sticky; top: 4.75rem; }
+.result-card, #calcResult, .calculation-summary { min-width: 0; }
+
+/* Kanban — Produção e Radar */
+.kanban-board, .production-board, .radar-kanban {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: .75rem;
+  scroll-snap-type: x proximity;
+}
+.kanban-column, .production-column, .radar-kanban-column {
+  flex: 0 0 var(--s3d-kanban-column);
+  width: var(--s3d-kanban-column);
+  max-width: min(88vw, var(--s3d-kanban-column));
+  scroll-snap-align: start;
+}
+.kanban-card, .production-card, .radar-opportunity-card { min-width: 0; }
+.kanban-card .badge, .production-card .badge, .radar-opportunity-card .badge { white-space: normal; text-align: left; }
+
+/* Configurações */
+.settings-layout { display: grid; grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.settings-nav { position: sticky; top: 4.75rem; }
+.settings-nav .nav-link, .settings-nav-item { width: 100%; text-align: left; white-space: normal; }
+.settings-section { min-width: 0; }
+.settings-card, .integration-card { min-width: 0; }
+.settings-callout { display: flex; align-items: flex-start; gap: .75rem; }
+.integration-logo {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; flex: 0 0 2.75rem;
+  border-radius: var(--bs-border-radius); font-weight: 700;
+  background: var(--bs-secondary-bg); color: var(--bs-emphasis-color);
+}
+.integration-status { max-width: 100%; }
+
+/* Radar */
+.radar-stat-card { min-width: 0; }
+.radar-stat-icon, .radar-tab-icon, .radar-editor-tab-icon { flex: 0 0 auto; }
+.radar-tab-copy { min-width: 0; }
+.radar-tab-copy > * { display: block; }
+.radar-editor-section-head { display: flex; align-items: flex-start; gap: .75rem; }
+.radar-editor-section-head > div { min-width: 0; }
+
+/* Impressoras, consignações e listas dinâmicas */
+.printer-grid, .printers-grid, .consignment-grid, .product-grid, .client-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+.printer-card, .consignment-card, .product-card, .client-card { min-width: 0; }
+.progress { min-width: 5rem; }
+
+/* Modais e painéis laterais */
+.modal-dialog { max-width: min(96vw, var(--bs-modal-width)); }
+.modal-content, .offcanvas { min-width: 0; }
+.offcanvas.offcanvas-end { --bs-offcanvas-width: min(40rem, 100vw); }
+
+/* Badges e botões longos */
+.badge { max-width: 100%; white-space: normal; }
+.btn { max-width: 100%; }
+.card-actions, .toolbar-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+
+/* Utilitários de conteúdo dinâmico */
+[data-empty-state], .empty-state { text-align: center; padding: 2rem 1rem; color: var(--bs-secondary-color); }
+img { max-width: 100%; height: auto; }
+canvas, svg { max-width: 100%; }
+
+@media (max-width: 991.98px) {
+  .main { width: 100%; }
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; overflow-x: auto; }
+  .settings-nav .nav { flex-direction: row !important; flex-wrap: nowrap; }
+  .settings-nav .nav-link, .settings-nav-item { width: auto; white-space: nowrap; }
+  .calc-right { position: static; }
+}
+
+@media (max-width: 767.98px) {
+  .app-topbar { align-items: flex-start; }
+  .topbar-title small { display: none; }
+  .topbar-right { gap: .25rem !important; }
+  .theme-segment .btn { padding-inline: .5rem; }
+  .page-header { align-items: flex-start !important; }
+  .page-header > .d-flex, .page-header .hero-actions { width: 100%; }
+  .page-header .btn { flex: 1 1 auto; }
+  .table { min-width: 36rem; }
+  .offcanvas.offcanvas-end { --bs-offcanvas-width: 100vw; }
+}
+
+@media (max-width: 575.98px) {
+  .p-3.p-lg-4, .p-4 { padding: 1rem !important; }
+  .card-actions .btn, .toolbar-actions .btn { width: 100%; }
+  .input-group { flex-wrap: wrap; }
+  .input-group > .input-group-text, .input-group > .btn { border-radius: var(--bs-border-radius) !important; margin-top: .25rem; }
+  .input-group > .form-control, .input-group > .form-select { flex-basis: 100%; border-radius: var(--bs-border-radius) !important; }
+  .nav-tabs .nav-link, .nav-pills .nav-link { padding: .625rem .75rem; }
+}
+
+/* Componentes renderizados dinamicamente */
+.dashboard-printer-card,
+.radar-kanban-card,
+.kanban-card,
+.stat-card,
+.order-item,
+.printer-live-card,
+.cons-card,
+.opportunity-card {
+  min-width: 0;
+  overflow: hidden;
+}
+.dashboard-printer-card {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--bs-body-bg);
+}
+.dashboard-printer-card .printer-job,
+.dashboard-printer-card .printer-state { min-width: 0; overflow-wrap: anywhere; }
+
+.kanban-column > header,
+.radar-kanban-column > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem;
+}
+.kanban-stack, .radar-kanban-list { display: grid; gap: .75rem; min-height: 4rem; }
+.kanban-card, .radar-kanban-card {
+  padding: 1rem;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--bs-body-bg);
+  box-shadow: var(--bs-box-shadow-sm);
+}
+.kanban-card-top, .kanban-meta, .kanban-actions {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.kanban-card-top { justify-content: space-between; }
+.kanban-meta { flex-direction: column; align-items: flex-start; color: var(--bs-secondary-color); font-size: .875rem; }
+.kanban-actions { margin-top: .75rem; }
+.kanban-empty { padding: 1.5rem .75rem; text-align: center; color: var(--bs-secondary-color); }
+.progress-line { height: .4rem; overflow: hidden; border-radius: var(--bs-border-radius-pill); background: var(--bs-secondary-bg); margin-top: .75rem; }
+.progress-line > span { display: block; height: 100%; background: var(--bs-primary); }
+
+.radar-kanban {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--s3d-kanban-column);
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: .75rem;
+}
+.radar-kanban-column { min-width: 0; }
+.radar-kanban-card h3, .radar-kanban-card h4 { font-size: 1rem; }
+
+.order-item, .stat-card {
+  padding: 1rem;
+  border: var(--bs-border-width) solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  background: var(--bs-body-bg);
+}
+.order-header, .order-details, .order-actions {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.order-header, .order-actions { justify-content: space-between; }
+.order-details { color: var(--bs-secondary-color); }
+
+/* Corrige colunas Bootstrap aplicadas diretamente em cards. */
+.row > .card[class*="col-"] { margin-bottom: 0; }
+.executive-strip > .card,
+.kpi-grid > .card,
+.dashboard-grid > .card,
+.dashboard-grid > section { height: auto; }
+
+/* Configurações: neutraliza larguras de col-* quando o layout usa grid. */
+.settings-layout > .settings-nav,
+.settings-layout > .settings-content {
+  width: auto;
+  max-width: none;
+  padding-inline: 0;
+}
+.settings-nav { display: flex; flex-direction: column; }
+.settings-content { min-width: 0; }
+.settings-card-grid > .settings-card { height: 100%; }
+
+/* Evita elementos ocultos por estilos inline antigos conflitarem com Bootstrap. */
+.d-none { display: none !important; }
+
+@media (max-width: 991.98px) {
+  .settings-layout > .settings-nav,
+  .settings-layout > .settings-content { width: 100%; }
+  .settings-nav { flex-direction: row; }
+}

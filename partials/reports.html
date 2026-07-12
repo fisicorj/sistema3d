@@ -1,0 +1,31 @@
+<div class="s3d-page s3d-reports-page">
+  <header class="app-page-header d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
+    <div>
+      <span class="text-uppercase text-primary fw-semibold small d-block mb-1">Inteligência do negócio</span>
+      <h1 class="h3 mb-1"><i class="bi bi-bar-chart-line me-2"></i>Relatórios</h1>
+      <p class="text-body-secondary mb-0">Compare períodos, identifique tendências e acompanhe os principais resultados.</p>
+    </div>
+    <button class="btn btn-outline-primary" onclick="switchTab('finance', event)"><i class="bi bi-cash-stack me-1"></i>Voltar ao financeiro</button>
+  </header>
+
+  <section class="card border shadow-sm mb-4">
+    <div class="card-header bg-body"><h2 class="h5 mb-1">Período de análise</h2><p class="small text-body-secondary mb-0">Selecione os meses inicial e final para gerar uma visão consolidada.</p></div>
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="reportStartMonth">Mês inicial</label><input class="form-control" id="reportStartMonth" type="month"/></div>
+        <div class="col-12 col-md-4"><label class="form-label fw-semibold" for="reportEndMonth">Mês final</label><input class="form-control" id="reportEndMonth" type="month"/></div>
+        <div class="col-12 col-md-4"><button class="btn btn-primary w-100" onclick="generateReport()"><i class="bi bi-play-circle me-1"></i>Gerar relatório</button></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="reportResult">
+    <div class="card border shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-bar-chart display-5 text-body-secondary"></i>
+        <h2 class="h5 mt-3">Nenhum relatório gerado</h2>
+        <p class="text-body-secondary mb-0">Escolha um período acima para visualizar indicadores, evolução mensal e rankings.</p>
+      </div>
+    </div>
+  </div>
+</div>

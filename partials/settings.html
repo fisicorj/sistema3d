@@ -1,0 +1,193 @@
+<div class="settings-shell container-fluid px-0">
+<header class="card border shadow-sm mb-4"><div class="card-body d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+<div>
+<span class="eyebrow text-uppercase text-primary fw-semibold small d-block mb-1">Central de administração</span>
+<h1 class="h3 mb-1">Configurações</h1>
+<p class="text-body-secondary mb-0">Gerencie preços, integrações, frete, impressoras e segurança de dados em um só lugar.</p>
+</div>
+<div class="settings-hero-actions d-flex flex-wrap align-items-center gap-2">
+<span class="save-state" id="sqlitePersistenceStatus">Aguardando salvamento...</span>
+<button class="btn btn-primary" onclick="saveSettingsNow()"><i class="bi bi-floppy"></i> Salvar alterações</button>
+</div>
+</div></header>
+<div class="settings-layout">
+<aside aria-label="Seções de configuração" class="settings-nav card border shadow-sm p-2 nav nav-pills gap-1">
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3 active" data-settings-target="settings-general" onclick="activateSettingsSection('settings-general', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-shop"></i></span><div class="min-w-0"><strong>Geral</strong><small class="d-block text-body-secondary text-wrap">Marca e orçamentos</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-pricing" onclick="activateSettingsSection('settings-pricing', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-cash-coin"></i></span><div class="min-w-0"><strong>Preços e custos</strong><small class="d-block text-body-secondary text-wrap">Margens e operação</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-printer" onclick="activateSettingsSection('settings-printer', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-printer"></i></span><div class="min-w-0"><strong>Impressora</strong><small class="d-block text-body-secondary text-wrap">Energia e Bambu Lab</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-shipping" onclick="activateSettingsSection('settings-shipping', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-truck"></i></span><div class="min-w-0"><strong>Frete</strong><small class="d-block text-body-secondary text-wrap">Tabelas e Melhor Envio</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-integrations" onclick="activateSettingsSection('settings-integrations', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-plug"></i></span><div class="min-w-0"><strong>Integrações</strong><small class="d-block text-body-secondary text-wrap">Etsy e serviços</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-database" onclick="activateSettingsSection('settings-database', this); loadDatabaseSettings()" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-server"></i></span><div class="min-w-0"><strong>Banco de dados</strong><small class="d-block text-body-secondary text-wrap">SQLite, PostgreSQL e SQL Server</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-users" onclick="activateSettingsSection('settings-users', this); loadSprint6Users(); loadSprint7Security()" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-people-fill"></i></span><div class="min-w-0"><strong>Usuários</strong><small class="d-block text-body-secondary text-wrap">Perfis e permissões</small></div></button>
+<button class="settings-nav-item nav-link text-start d-flex align-items-center gap-3" data-settings-target="settings-data" onclick="activateSettingsSection('settings-data', this)" type="button"><span class="settings-nav-icon flex-shrink-0"><i class="bi bi-database"></i></span><div class="min-w-0"><strong>Dados e backup</strong><small class="d-block text-body-secondary text-wrap">SQLite e recuperação</small></div></button>
+</aside>
+<main class="settings-content min-w-0">
+<section class="settings-section active d-block w-100" id="settings-general">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">🏷️</span></div><div><h2 class="h4 mb-2">Identidade do negócio</h2><p class="text-body-secondary mb-0">Informações exibidas em orçamentos e documentos gerados pelo sistema.</p></div></div>
+<div class="settings-card app-section-card-grid two-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Marca</h3><span class="status-dot success"></span></div>
+<div class="field-group mb-3"><label class="form-label" for="settingBrandName">Nome da empresa ou marca</label><input class="form-control" id="settingBrandName" maxlength="60" placeholder="Ex.: Oficina 3D" type="text"/><small class="form-text">Aparece nos orçamentos enviados ao cliente.</small></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Orçamentos</h3><span class="mini-badge badge text-bg-secondary">Padrão</span></div>
+<div class="field-group mb-3"><label class="form-label" for="settingQuoteValidityDays">Validade padrão</label><div class="input-suffix input-group"><input class="form-control" id="settingQuoteValidityDays" max="90" min="1" type="number" value="15"/><span class="input-group-text">dias</span></div><small class="form-text">Prazo sugerido para aceite de novos orçamentos.</small></div>
+</article>
+</div>
+<div class="alert alert-info d-flex align-items-start gap-3"><span>💡</span><div><strong>Dica</strong><p class="mb-0 mt-1">Use o nome comercial que seus clientes reconhecem. Ele aparecerá nos documentos gerados pelo sistema.</p></div></div>
+</section>
+<section class="settings-section d-none w-100" id="settings-pricing">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">💰</span></div><div><h2 class="h4 mb-2">Preços e custos</h2><p class="text-body-secondary mb-0">Defina as regras utilizadas automaticamente na calculadora e nos orçamentos.</p></div></div>
+<div class="settings-card app-section-card-grid three-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-md-6 col-xl-4"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Mão de obra</h3></div><div class="field-group mb-3"><label class="form-label">Valor da sua hora</label><div class="input-prefix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingHourlyRate" min="0" step="1" type="number" value="60"/></div></div></article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-md-6 col-xl-4"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Margem padrão</h3></div><div class="field-group mb-3"><label class="form-label">Margem de lucro</label><div class="input-suffix input-group"><input class="form-control" id="settingProfitMargin" min="0" step="5" type="number" value="50"/><span class="input-group-text">%</span></div></div></article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-md-6 col-xl-4"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Meta mensal</h3></div><div class="field-group mb-3"><label class="form-label">Faturamento desejado</label><div class="input-prefix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingMonthlyGoal" min="0" step="100" type="number" value="0"/></div><small class="form-text">Use zero para ocultar no dashboard.</small></div></article>
+</div>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Custos indiretos e proteção de margem</h3><p>Parâmetros aplicados automaticamente em cada cálculo.</p></div></div>
+<div class="row g-3">
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Perda de material</label><div class="input-suffix input-group"><input class="form-control" id="settingLossRate" max="100" min="0" step="1" type="number" value="10"/><span class="input-group-text">%</span></div><small class="form-text">Suportes, purga e sobras.</small></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Purga por troca de cor</label><div class="input-prefix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingPurgeCostPerChange" min="0" step="0.50" type="number" value="3.00"/></div></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Taxa de falha <small id="historicalFailRateHint"></small></label><div class="input-suffix input-group"><input class="form-control" id="settingFailRate" max="80" min="0" step="1" type="number" value="5"/><span class="input-group-text">%</span></div></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Imposto sobre lucro</label><div class="input-suffix input-group"><input class="form-control" id="settingTaxRate" max="100" min="0" step="0.5" type="number" value="0"/><span class="input-group-text">%</span></div></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Embalagem fallback</label><div class="input-prefix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingPackagingCost" min="0" step="0.50" type="number" value="0"/></div></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Pedido atrasado após</label><div class="input-suffix input-group"><input class="form-control" id="settingAlertDays" max="90" min="1" type="number" value="7"/><span class="input-group-text">dias</span></div></div>
+</div>
+</article>
+</section>
+<section class="settings-section d-none w-100" id="settings-printer">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">🖨️</span></div><div><h2 class="h4 mb-2">Impressoras e operação</h2><p class="text-body-secondary mb-0">Configure o custo por hora e o monitoramento da Bambu Lab.</p></div></div>
+<div class="settings-card app-section-card-grid row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Custo da impressora</h3><p>Energia, manutenção e depreciação.</p></div></div>
+<div class="field-group mb-3"><label class="form-label">Preço da energia</label><div class="input-prefix input-with-suffix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingEnergyPrice" min="0" step="0.01" type="number" value="1.00"/><em class="input-group-text">/kWh</em></div></div>
+<div class="field-group mb-3"><label class="form-label">Manutenção fallback <small id="calcMaintenanceInfo"></small></label><div class="input-prefix input-with-suffix input-group"><span class="input-group-text">R$</span><input class="form-control" id="settingMaintenancePerHour" min="0" step="0.05" type="number" value="0.50"/><em class="input-group-text">/h</em></div><small class="form-text">Usado apenas quando não há itens ativos em <a href="#" onclick="switchTab('maintenance',event);return false;">Manutenção</a>.</small></div>
+<div class="cost-preview" id="printerHourCostInfo">Selecione uma impressora na calculadora para ver o custo/hora.</div>
+<div class="info-box alert alert-info" style="margin-top:10px;font-size:.85em;">💡 A configuração Bambu Lab é salva no banco de dados. Edite cada impressora para alterar IP, serial ou access code.</div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Bambu Lab configuradas</h3><p>Configurações persistidas e estado atual das conexões MQTT.</p></div><button class="btn btn-sm btn-outline-secondary" onclick="loadBambuSettingsSummary()" type="button"><i class="bi bi-arrow-clockwise"></i></button></div>
+<div id="bambuSettingsSummary"><span class="text-body-secondary" style=";">Carregando impressoras configuradas…</span></div>
+</article>
+</div>
+</section>
+<section class="settings-section d-none w-100" id="settings-shipping">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">🚚</span></div><div><h2 class="h4 mb-2">Frete e entregas</h2><p class="text-body-secondary mb-0">Controle suas tabelas próprias e a integração com o Melhor Envio.</p></div></div>
+<div class="settings-card app-section-card-grid two-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Frete por peso</h3><p>Faixas de peso e valores fixos.</p></div></div><div class="embedded-table" id="shippingTable"></div><div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveShippingSettings()">Salvar tabela</button><button class="btn btn-outline-secondary" onclick="loadDefaultShipping()">Restaurar padrão</button></div></article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Frete por CEP/UF</h3><p>Regras regionais personalizadas.</p></div></div><div class="embedded-table" id="cepShippingTable"></div><div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveShippingSettings()">Salvar tabela</button><button class="btn btn-outline-secondary" onclick="loadDefaultShipping()">Restaurar padrão</button></div></article>
+</div>
+<article class="settings-card card border shadow-sm h-100 integration-card p-3 p-lg-4">
+<div class="integration-header d-flex justify-content-between align-items-start gap-3 mb-3"><div class="integration-logo shipping">ME</div><div><h3>Melhor Envio</h3><p>Cotação de PAC, Sedex e transportadoras</p></div><div class="form-check form-switch m-0"><input class="form-check-input" id="meEnabled" role="switch" type="checkbox"/><label class="form-check-label form-label" for="meEnabled">Ativar</label></div></div>
+<div class="row g-3">
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Ambiente</label><select class="form-select" id="meEnvironment"><option value="production">Produção</option><option value="sandbox">Sandbox/Testes</option></select></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">CEP de origem</label><input class="form-control" id="meOriginCep" maxlength="9" placeholder="09080-510" type="text"/></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Serviços específicos</label><input class="form-control" id="meServices" placeholder="1,2,3 ou vazio" type="text"/></div>
+<div class="field-group field-span-2 mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Access Token</label><div class="password-field input-group"><input autocomplete="off" class="form-control" id="meAccessToken" placeholder="Cole o token ou deixe vazio para manter" type="password"/><button class="btn btn-outline-secondary" onclick="toggleSecretField('meAccessToken', this)" type="button">👁</button></div></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">User-Agent</label><input class="form-control" id="meUserAgent" placeholder="Sistema3D Local" type="text"/></div>
+</div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveMelhorEnvioConfig()">Salvar integração</button><button class="btn btn-outline-secondary" onclick="loadMelhorEnvioConfig()">Recarregar</button><small id="meConfigStatus">Carregando configuração...</small></div>
+</article>
+</section>
+<section class="settings-section d-none w-100" id="settings-integrations">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">🔌</span></div><div><h2 class="h4 mb-2">Integrações</h2><p class="text-body-secondary mb-0">Conecte serviços externos para ampliar o Radar de Produtos.</p></div></div>
+<article class="settings-card card border shadow-sm h-100 integration-card p-3 p-lg-4">
+<div class="integration-header d-flex justify-content-between align-items-start gap-3 mb-3"><div class="integration-logo etsy">E</div><div><h3>Etsy Open API</h3><p>Pesquisa automática de anúncios ativos</p></div><div class="integration-status" id="etsyConnectionStatus">⏳ Verificando…</div></div>
+<div class="field-group mb-3"><label class="form-label">Etsy API Key</label><div class="password-field input-group"><input class="form-control" id="settingEtsyApiKey" placeholder="keystring ou keystring:shared_secret" type="password"/><button class="btn btn-outline-secondary" onclick="toggleSecretField('settingEtsyApiKey', this)" type="button">👁</button></div><small class="form-text">Salva somente neste computador em <code>app_data/etsy_config.json</code>.</small></div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveEtsyConfig()">Salvar Etsy</button><button class="btn btn-outline-danger" onclick="disconnectEtsy()">Remover chave</button><a class="btn btn-outline-secondary" href="https://www.etsy.com/developers/register" rel="noopener" target="_blank">Criar app Etsy</a><span id="etsyConfigStatus"></span></div>
+<div class="alert alert-info d-flex align-items-start gap-3"><span>ℹ️</span><div><strong>Modo assistido disponível</strong><p class="mb-0 mt-1">Sem chave aprovada, o Radar continua funcionando com links externos e análise manual.</p></div></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 integration-card p-3 p-lg-4">
+<div class="integration-header d-flex justify-content-between align-items-start gap-3 mb-3"><div class="integration-logo">ML</div><div><h3>Mercado Livre OAuth</h3><p>Consulta autenticada de anúncios e mercado</p></div><div class="integration-status" id="mlConnectionStatus">⏳ Verificando…</div></div>
+<div class="row g-3">
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">App ID</label><input class="form-control" id="settingMlAppId" placeholder="ID do aplicativo" type="text"/></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">Client Secret</label><div class="password-field input-group"><input class="form-control" id="settingMlSecret" placeholder="********" type="password"/><button class="btn btn-outline-secondary" onclick="toggleSecretField('settingMlSecret', this)" type="button">👁</button></div></div>
+<div class="field-group field-span-2 mb-3 col-12 col-lg-6"><label class="form-label">URL pública/base do sistema</label><input class="form-control" id="settingMlBaseUrl" placeholder="https://seu-dominio.com" type="url"/><small class="form-text">O callback será <code>/api/ml-oauth-callback</code>. O Mercado Livre exige uma URL aceita no cadastro do app; IP local normalmente não serve.</small></div>
+</div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveMlConfig()">Salvar</button><button class="btn btn-outline-secondary" onclick="connectMl()">Conectar com ML</button><button class="btn btn-outline-secondary" onclick="loadMlConfig()">Recarregar status</button><button class="btn btn-outline-danger" onclick="disconnectMl()">Desconectar</button></div>
+</article>
+</section>
+<section class="settings-section d-none w-100" id="settings-database">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0"><i class="bi bi-server"></i></span></div><div><h2 class="h4 mb-2">Banco de dados</h2><p class="text-body-secondary mb-0">Escolha onde o sistema manterá a cópia principal dos dados.</p></div></div>
+<div class="alert alert-info d-flex align-items-start gap-3"><span><i class="bi bi-info-circle"></i></span><div><strong>Compatibilidade preservada</strong><p class="mb-0 mt-1">Todos os módulos operacionais utilizam tabelas relacionais nativas no banco selecionado. O SQLite local permanece apenas como cache e fallback de recuperação.</p></div></div>
+<div class="settings-card app-section-card-grid two-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Provedor de persistência</h3><p>SQLite é o padrão e não exige instalação adicional.</p></div><span class="mini-badge badge text-bg-secondary" id="dbBackendBadge">Carregando</span></div>
+<div class="field-group mb-3"><label class="form-label" for="dbEngine">Mecanismo</label><select class="form-select" id="dbEngine" onchange="updateDatabaseFields()"><option value="sqlite">SQLite local</option><option value="postgresql">PostgreSQL</option><option value="sqlserver">Microsoft SQL Server</option></select></div>
+<div class="row g-3" id="dbConnectionFields">
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label" for="dbHost">Servidor</label><input class="form-control" id="dbHost" placeholder="localhost" type="text"/></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label" for="dbPort">Porta</label><input class="form-control" id="dbPort" max="65535" min="1" type="number"/></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label" for="dbName">Banco</label><input class="form-control" id="dbName" placeholder="sistema3d" type="text"/></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label" for="dbUser">Usuário</label><input autocomplete="username" class="form-control" id="dbUser" type="text"/></div>
+<div class="field-group field-span-2 mb-3 col-12 col-lg-6"><label class="form-label" for="dbPassword">Senha</label><div class="password-field input-group"><input autocomplete="new-password" class="form-control" id="dbPassword" placeholder="Deixe em branco para manter a atual" type="password"/><button class="btn btn-outline-secondary" onclick="toggleSecretField('dbPassword', this)" type="button"><i class="bi bi-eye"></i></button></div></div>
+<div class="field-group db-postgres-only mb-3 col-12 col-lg-6"><label class="form-label" for="dbSslMode">SSL PostgreSQL</label><select class="form-select" id="dbSslMode"><option value="prefer">Preferir</option><option value="require">Obrigatório</option><option value="disable">Desativado</option></select></div>
+<div class="field-group db-sqlserver-only mb-3 col-12 col-lg-6"><label class="form-label" for="dbOdbcDriver">Driver ODBC</label><input class="form-control" id="dbOdbcDriver" type="text" value="ODBC Driver 18 for SQL Server"/></div>
+<div class="field-group db-sqlserver-only mb-3 col-12 col-lg-6"><div class="form-check form-switch"><input checked="" class="form-check-input" id="dbTrustCertificate" role="switch" type="checkbox"/><label class="form-check-label form-label" for="dbTrustCertificate">Confiar no certificado do servidor</label></div></div>
+</div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-outline-secondary" onclick="testDatabaseConnection()"><i class="bi bi-plug"></i> Testar conexão</button><button class="btn btn-primary" onclick="saveDatabaseSettings()"><i class="bi bi-arrow-repeat"></i> Migrar e ativar</button></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6">
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><div><h3 class="h5 mb-0">Status e requisitos</h3><p>Diagnóstico do provedor ativo.</p></div></div>
+<div class="database-provider-status alert alert-light border d-flex align-items-center gap-2" id="dbBackendStatus"><div class="spinner-border spinner-border-sm" role="status"></div><span>Carregando status...</span></div>
+<div class="database-requirements mt-3">
+<h4>Drivers opcionais</h4>
+<code>pip install "psycopg[binary]"</code>
+<code>pip install pyodbc</code>
+<small>Para SQL Server, instale também o Microsoft ODBC Driver 18 no Windows ou Linux.</small>
+</div>
+<div class="alert alert-info d-flex align-items-start gap-3"><span><i class="bi bi-shield-check"></i></span><div><strong>Integridade relacional</strong><p class="mb-0 mt-1">Chaves estrangeiras, índices, regras de valores e transações compostas protegem os dados.</p></div></div><div class="card-actions mt-3 d-flex flex-wrap gap-2"><button class="btn btn-outline-secondary" onclick="checkDatabaseIntegrity()"><i class="bi bi-clipboard2-check"></i> Verificar integridade</button></div><div class="database-provider-status mt-3 d-none alert alert-light border d-flex align-items-center gap-2" id="dbIntegrityResult"></div>
+</article>
+</div>
+</section>
+<section class="settings-section d-none w-100" id="settings-users">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">👥</span></div><div><h2 class="h4 mb-2">Usuários e perfis</h2><p class="text-body-secondary mb-0">Estrutura preparada para ativar autenticação e permissões em uma próxima etapa.</p></div></div>
+<div class="settings-card app-section-card-grid two-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 mb-3 pb-3 border-bottom"><h3 class="h5 mb-0">Novo usuário</h3><span class="mini-badge badge text-bg-secondary">Preparação</span></div>
+<div class="field-group mb-3"><label class="form-label">Nome</label><input class="form-control" id="s6UserName" maxlength="80" type="text"/></div>
+<div class="field-group mb-3"><label class="form-label">E-mail</label><input class="form-control" id="s6UserEmail" maxlength="120" type="email"/></div>
+<div class="field-group mb-3"><label class="form-label">Perfil</label><select class="form-select" id="s6UserRole"></select></div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveSprint6User()">Adicionar usuário</button></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Usuários cadastrados</h3><p>A autenticação ainda fica desativada nesta fase.</p></div><button class="btn btn-sm btn-outline-secondary" onclick="loadSprint6Users(); loadSprint7Security()">Atualizar</button></div><div class="list-group list-group-flush" id="s6UsersList"></div></article>
+</div>
+<article class="settings-card card border shadow-sm h-100 mt-4 p-3 p-lg-4">
+<div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Autenticação e sessão</h3><p>Ative login por senha e controle o tempo das sessões.</p></div><span class="mini-badge badge text-bg-secondary" id="s7AuthStatus">Carregando</span></div>
+<div class="row g-3">
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">Autenticação</label><select class="form-select" id="s7AuthEnabled"><option value="false">Desativada</option><option value="true">Ativada</option></select></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">Duração da sessão</label><div class="input-suffix input-group"><input class="form-control" id="s7SessionHours" max="168" min="1" type="number" value="12"/><span class="input-group-text">horas</span></div></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">Usuário administrador</label><select class="form-select" id="s7AuthUser"></select></div>
+<div class="field-group mb-3 col-12 col-lg-6"><label class="form-label">Definir/alterar senha</label><input autocomplete="new-password" class="form-control" id="s7AuthPassword" minlength="8" placeholder="Mínimo de 8 caracteres" type="password"/></div>
+</div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveSprint7Security()">Salvar segurança</button><button class="btn btn-outline-secondary" onclick="loadSprint7Security()">Atualizar status</button></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 mt-4 p-3 p-lg-4"><div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>API REST v1</h3><p>Endpoints autenticados para integrações e futuras sincronizações.</p></div></div><div class="small"><code>GET /api/v1/summary</code><br/><code>GET /api/v1/clients</code><br/><code>GET /api/v1/products</code><br/><code>GET /api/v1/orders</code><br/><code>GET /api/v1/quotes</code></div><div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-outline-secondary" onclick="testSprint7Api()">Testar API</button></div><pre class="bg-body-tertiary rounded p-3 small mt-3" id="s7ApiResult" style="max-height:220px;overflow:auto"></pre></article>
+</section>
+<section class="settings-section d-none w-100" id="settings-data">
+<div class="d-flex align-items-start gap-3 mb-4"><div><span class="settings-section-icon flex-shrink-0">💾</span></div><div><h2 class="h4 mb-2">Dados e backup</h2><p class="text-body-secondary mb-0">Proteja o histórico do sistema e tenha sempre uma cópia recuperável.</p></div></div>
+<div class="settings-card app-section-card-grid two-columns row g-3">
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="backup-icon">📥</div><div><h3>Exportar backup</h3><p>Baixe uma cópia completa do banco SQLite.</p></div><button class="btn btn-primary" onclick="backupData()">Exportar .sqlite</button></article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4 col-12 col-lg-6"><div class="backup-icon">📤</div><div><h3>Restaurar backup</h3><p>Substitua os dados atuais por um arquivo salvo.</p></div><button class="btn btn-outline-secondary" onclick="restoreBackup()">Importar .sqlite</button></article>
+</div>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4">
+<div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Backup automático</h3><p>Crie cópias periódicas no servidor local.</p></div><span class="mini-badge badge text-bg-secondary" id="s6BackupStatus">Carregando</span></div>
+<div class="row g-3">
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Ativar</label><select class="form-select" id="s6BackupEnabled"><option value="true">Sim</option><option value="false">Não</option></select></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Frequência</label><select class="form-select" id="s6BackupFrequency"><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="on_save">A cada salvamento</option></select></div>
+<div class="field-group mb-3 col-12 col-md-6 col-xl-4"><label class="form-label">Quantidade mantida</label><input class="form-control" id="s6BackupKeep" max="200" min="3" type="number" value="30"/></div>
+</div>
+<div class="card-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" onclick="saveSprint6BackupConfig()">Salvar automação</button><button class="btn btn-outline-secondary" onclick="runSprint6Backup()">Criar backup agora</button><button class="btn btn-outline-secondary" onclick="loadSprint6Backups()">Ver backups</button></div>
+<div class="small text-secondary mt-3" id="s6BackupList"></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4">
+<div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Lixeira</h3><p>Registros excluídos podem ser restaurados sem perda de histórico.</p></div><button class="btn btn-sm btn-outline-secondary" onclick="loadTrash()">Atualizar</button></div>
+<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Módulo</th><th>Registro</th><th>Excluído em</th><th>Ação</th></tr></thead><tbody id="trashBody"><tr><td class="text-body-secondary" colspan="4" style="text-align:center;">Clique em Atualizar para carregar.</td></tr></tbody></table></div>
+</article>
+<article class="settings-card card border shadow-sm h-100 p-3 p-lg-4">
+<div class="settings-card app-section-card-header d-flex justify-content-between align-items-start gap-3 mb-3"><div><h3>Histórico de alterações</h3><p>Últimas 100 operações auditadas no banco local.</p></div><div style="display:flex;gap:8px"><button class="btn btn-sm btn-outline-secondary" onclick="loadAuditLog()">Atualizar</button><button class="btn btn-sm btn-outline-secondary" onclick="exportAuditLog()">Exportar CSV</button></div></div>
+<div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>ID</th><th>Módulo</th><th>Registro</th><th>Ação</th><th>Data</th></tr></thead><tbody id="auditLogBody"><tr><td class="text-body-secondary" colspan="5" style="text-align:center;">Clique em Atualizar para carregar.</td></tr></tbody></table></div>
+</article>
+<div class="database-status-card alert alert-secondary d-flex align-items-start gap-3 mt-4"><div class="database-icon">🗄️</div><div><strong>Persistência relacional configurável</strong><p>Banco ativo selecionável entre SQLite, PostgreSQL e SQL Server. Espelho temporário: <code>app_data/sistema3d.sqlite</code>. Inicie pelo <code>server.py</code>, <code>iniciar.sh</code> ou <code>iniciar_windows.bat</code>.</p></div><span class="badge text-bg-secondary ms-auto" id="databaseStatusBadge">SQLite</span></div>
+</section>
+</main>
+</div>
+</div>

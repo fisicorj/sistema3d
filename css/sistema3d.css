@@ -1,0 +1,656 @@
+/* Sistema3D — camada visual consolidada sobre Bootstrap 5.3
+   1) tokens de tema; 2) estrutura; 3) componentes específicos.
+   Não redefine a API estrutural dos componentes Bootstrap. */
+
+/* --------------------------------------------------------------------------
+   1. TOKENS DE TEMA
+   -------------------------------------------------------------------------- */
+:root,
+[data-bs-theme="light"] {
+  --s3d-sidebar-width: 17.5rem;
+  --s3d-kanban-column: 19rem;
+  --s3d-surface: #fff;
+  --s3d-surface-muted: #f6f8fb;
+  --s3d-border: #c8d0da;
+  --s3d-border-strong: #aeb8c5;
+  --s3d-shadow: 0 .3rem 1rem rgba(15, 23, 42, .09);
+  --s3d-shadow-hover: 0 .7rem 1.6rem rgba(15, 23, 42, .14);
+  --s3d-radius: 1rem;
+  --bs-body-color: #1f2937;
+  --bs-secondary-color: #596579;
+  --bs-tertiary-color: #6b7280;
+  --bs-border-color: var(--s3d-border);
+  --bs-secondary-bg: #eef1f5;
+  --bs-tertiary-bg: #f5f7fa;
+  --bs-emphasis-color: #111827;
+}
+
+[data-bs-theme="dark"] {
+  --s3d-surface: #151b25;
+  --s3d-surface-muted: #1d2633;
+  --s3d-border: #4d5a6c;
+  --s3d-border-strong: #657388;
+  --s3d-shadow: 0 .3rem 1rem rgba(0, 0, 0, .32);
+  --s3d-shadow-hover: 0 .7rem 1.6rem rgba(0, 0, 0, .43);
+  --bs-body-color: #e7ebf0;
+  --bs-secondary-color: #b2bdca;
+  --bs-tertiary-color: #96a3b3;
+  --bs-border-color: var(--s3d-border);
+  --bs-secondary-bg: #252d38;
+  --bs-tertiary-bg: #1d2430;
+  --bs-emphasis-color: #fff;
+}
+
+html,
+body { min-height: 100%; }
+body { overflow-x: hidden; }
+
+/* Contraste complementar sem alterar o comportamento dos componentes. */
+.form-control,
+.form-select,
+.form-check-input,
+.input-group-text { border-color: var(--bs-border-color); }
+.form-control::placeholder { color: var(--bs-tertiary-color); opacity: 1; }
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 .2rem rgba(var(--bs-primary-rgb), .2);
+}
+
+.btn { font-weight: 500; }
+.btn-light { color: #212529; border-color: #aeb7c2; }
+.btn-outline-secondary { color: #3f4b5b; border-color: #7b8796; }
+[data-bs-theme="dark"] .btn-light { color: #e7ebf0; background: #303a47; border-color: #687587; }
+[data-bs-theme="dark"] .btn-outline-secondary { color: #d2d9e2; border-color: #8190a3; }
+
+.table { --bs-table-border-color: var(--s3d-border); }
+.table > :not(caption) > * > * { border-bottom-color: var(--s3d-border); }
+.table thead th { color: var(--bs-emphasis-color); background: var(--bs-secondary-bg); border-bottom-width: 2px; }
+
+.nav-tabs { border-bottom-color: var(--bs-border-color); }
+.nav-tabs .nav-link { color: var(--bs-secondary-color); }
+.nav-tabs .nav-link.active { color: var(--bs-emphasis-color); font-weight: 600; }
+
+.badge.text-bg-light,
+.badge.bg-light { color: #263244; border: 1px solid #aeb8c5; }
+[data-bs-theme="dark"] .badge.text-bg-light,
+[data-bs-theme="dark"] .badge.bg-light { color: #eef2f6; background: #35404e; border-color: #718095; }
+
+.text-body-secondary,
+.text-secondary,
+.form-text { color: var(--bs-secondary-color); }
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible { outline: 3px solid rgba(var(--bs-primary-rgb), .35); outline-offset: 2px; }
+
+/* --------------------------------------------------------------------------
+   2. ESTRUTURA DO SISTEMA
+   -------------------------------------------------------------------------- */
+.app,
+.main,
+.app-content,
+.tab-panel { min-width: 0; }
+.app-sidebar,
+#appSidebar { width: var(--s3d-sidebar-width); max-width: 88vw; flex-shrink: 0; }
+.main { width: calc(100% - var(--s3d-sidebar-width)); min-width: 0; }
+.app-content { width: 100%; }
+
+/* Aplicado apenas onde a redução é necessária, sem atingir todos os filhos de
+   .row, .card ou .navbar. */
+.min-w-0,
+.topbar-left,
+.topbar-title,
+.card-body,
+.tab-content,
+.tab-pane,
+.settings-content,
+.calc-left,
+.calc-right { min-width: 0; }
+
+h1, h2, h3, h4, h5, h6,
+.card-title,
+.form-label,
+.section-title,
+.table td,
+.alert { overflow-wrap: anywhere; }
+
+.app-topbar { min-height: 3.75rem; }
+.topbar-left { flex: 1 1 auto; }
+.topbar-title { line-height: 1.15; }
+.topbar-title strong,
+.topbar-title small { display: block; }
+.topbar-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-right { flex: 0 0 auto; }
+.sidebar-nav .nav-link { white-space: normal; }
+.sidebar-nav .nav-icon { width: 1.5rem; flex: 0 0 1.5rem; }
+
+.page-header,
+.app-page-header {
+  width: 100%;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--s3d-border);
+  border-radius: var(--s3d-radius);
+  background: var(--s3d-surface);
+  box-shadow: var(--s3d-shadow);
+}
+.page-header > div:first-child { flex: 1 1 20rem; min-width: 0; }
+.page-header .btn { white-space: normal; }
+
+.app-surface,
+.app-section-card,
+.panel-body,
+.form-card,
+.modern-card,
+.settings-card,
+.toolbar-card,
+.integration-card {
+  background: var(--s3d-surface);
+  border: 1px solid var(--s3d-border);
+  border-radius: var(--s3d-radius);
+  box-shadow: var(--s3d-shadow);
+}
+.app-section-card { padding: 1.25rem; }
+.app-section-card + .app-section-card { margin-top: 1rem; }
+
+.section-title,
+.app-section-heading,
+.settings-card-header,
+.integration-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: .8rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--s3d-border);
+}
+
+.table-responsive,
+.table-container,
+.embedded-table { width: 100%; overflow-x: auto; }
+.table th { white-space: nowrap; }
+.table td { vertical-align: middle; max-width: 28rem; overflow-wrap: anywhere; }
+
+.nav-tabs.flex-nowrap,
+.nav-pills.flex-nowrap,
+.calc-tabs,
+.radar-tabs,
+.radar-editor-tabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.nav-tabs .nav-link,
+.nav-pills .nav-link { white-space: nowrap; }
+
+.field-group > small,
+.form-text { display: block; margin-top: .35rem; }
+.input-group > .form-control,
+.input-group > .form-select { min-width: 0; }
+.form-control,
+.form-select,
+.input-group-text { min-height: 42px; }
+
+.card-actions,
+.toolbar-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.badge { max-width: 100%; white-space: normal; }
+img { max-width: 100%; height: auto; }
+canvas,
+svg { max-width: 100%; }
+
+.modal-dialog { max-width: min(96vw, var(--bs-modal-width)); }
+.offcanvas.offcanvas-end { --bs-offcanvas-width: min(40rem, 100vw); }
+
+/* Configurações */
+.settings-layout { display: grid; grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
+.settings-nav { position: sticky; top: 4.75rem; display: flex; flex-direction: column; }
+.settings-nav .nav-link,
+.settings-nav-item { width: 100%; text-align: left; white-space: normal; }
+.settings-layout > .settings-nav,
+.settings-layout > .settings-content { width: auto; max-width: none; padding-inline: 0; }
+.settings-callout { display: flex; align-items: flex-start; gap: .75rem; }
+.integration-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 2.75rem;
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-secondary-bg);
+  color: var(--bs-emphasis-color);
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   3. COMPONENTES ESPECÍFICOS DO SISTEMA3D
+   -------------------------------------------------------------------------- */
+.dashboard-screen { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.s3d-stat-card,
+.kpi-card,
+.executive-card {
+  position: relative;
+  min-height: 118px;
+  overflow: hidden;
+  border: 1px solid var(--s3d-border);
+  border-left: 4px solid var(--bs-primary);
+  border-radius: var(--s3d-radius);
+  background: var(--s3d-surface);
+  box-shadow: var(--s3d-shadow);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.s3d-stat-card:hover,
+.kpi-card:hover,
+.executive-card:hover { transform: translateY(-2px); box-shadow: var(--s3d-shadow-hover); }
+.s3d-stat-card .stat-icon,
+.kpi-icon,
+.executive-card > i {
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 2.7rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: .8rem;
+  color: var(--bs-primary);
+  background: rgba(var(--bs-primary-rgb), .11);
+  font-size: 1.25rem;
+}
+.s3d-stat-card strong,
+.kpi-card strong,
+.executive-card strong { display: block; margin-top: .25rem; font-size: clamp(1.25rem, 2vw, 1.75rem); line-height: 1.1; overflow-wrap: anywhere; }
+.kpi-card em { display: block; margin-top: .35rem; font-size: .78rem; font-style: normal; color: var(--bs-secondary-color); }
+
+.dashboard-printer-grid,
+.printer-grid,
+.printers-grid,
+.consignment-grid,
+.product-grid,
+.client-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+.dashboard-printer-empty,
+.empty-state,
+[data-empty-state] { text-align: center; padding: 2rem 1rem; color: var(--bs-secondary-color); }
+.mini-insights { display: grid; gap: .75rem; }
+.mini-insights > div { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: .85rem 1rem; border: 1px solid var(--s3d-border); border-radius: .8rem; background: var(--s3d-surface-muted); }
+.bar-chart,
+.modern-bars { min-height: 14rem; overflow-x: auto; }
+
+/* Calculadora: uma única definição, sem breakpoints concorrentes. */
+.calc-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, .9fr);
+  gap: 1.5rem;
+  align-items: start;
+  width: 100%;
+}
+.calc-left,
+.calc-right { width: auto; max-width: none; padding: 0; align-self: start; }
+.calc-right { position: sticky; top: 5rem; }
+.calc-result-panel {
+  max-height: calc(100vh - 6.25rem);
+  overflow-y: auto;
+  border: 1px solid var(--s3d-border-strong);
+  border-radius: var(--s3d-radius);
+  background: var(--s3d-surface);
+  box-shadow: var(--s3d-shadow-hover);
+}
+.calc-result-header { padding: 1.2rem; color: #fff; background: linear-gradient(135deg, var(--bs-primary), #5f3dc4); }
+.calc-result-header .result-price-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+.calc-result-header .result-price-value { margin-top: .25rem; font-size: clamp(1.9rem, 4vw, 2.65rem); font-weight: 800; line-height: 1; }
+.calc-result-body { padding: 1rem 1.1rem; }
+#calcResultLines { display: grid; }
+.result-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--s3d-border); font-size: .86rem; }
+.result-line:last-child { border-bottom: 0; }
+.result-line-label { min-width: 0; color: var(--bs-secondary-color); overflow-wrap: anywhere; }
+.result-line-value { text-align: right; font-weight: 600; white-space: nowrap; }
+.result-line-value.profit { color: var(--bs-success); }
+.result-actions { display: grid; gap: .6rem; padding: 1rem; border-top: 1px solid var(--s3d-border); }
+.result-actions .btn { width: 100%; min-height: 42px; display: flex; align-items: center; justify-content: center; gap: .45rem; }
+
+/* Kanban */
+.kanban-board,
+.production-board,
+.radar-kanban {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: .75rem;
+  scroll-snap-type: x proximity;
+}
+.kanban-column,
+.production-column,
+.radar-kanban-column {
+  flex: 0 0 var(--s3d-kanban-column);
+  width: var(--s3d-kanban-column);
+  max-width: min(88vw, var(--s3d-kanban-column));
+  scroll-snap-align: start;
+}
+.kanban-card,
+.production-card,
+.radar-opportunity-card,
+.radar-kanban-card,
+.order-item,
+.printer-live-card,
+.cons-card,
+.opportunity-card,
+.dashboard-printer-card {
+  min-width: 0;
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid var(--s3d-border);
+  border-radius: .9rem;
+  background: var(--s3d-surface);
+  box-shadow: 0 .2rem .65rem rgba(15, 23, 42, .07);
+}
+.kanban-card-top,
+.kanban-meta,
+.kanban-actions,
+.order-header,
+.order-details,
+.order-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.kanban-card-top,
+.order-header,
+.order-actions { justify-content: space-between; }
+.kanban-meta,
+.order-details { color: var(--bs-secondary-color); font-size: .875rem; }
+.kanban-stack,
+.radar-kanban-list { display: grid; gap: .75rem; min-height: 4rem; }
+.progress-line { height: .4rem; overflow: hidden; border-radius: var(--bs-border-radius-pill); background: var(--bs-secondary-bg); margin-top: .75rem; }
+.progress-line > span { display: block; height: 100%; background: var(--bs-primary); }
+
+/* Radar */
+.radar-editor-section-head { display: flex; align-items: flex-start; gap: .75rem; }
+.radar-editor-section-head > div,
+.radar-tab-copy { min-width: 0; }
+.radar-tab-copy > * { display: block; }
+
+/* --------------------------------------------------------------------------
+   4. RESPONSIVIDADE
+   -------------------------------------------------------------------------- */
+@media (min-width: 1400px) {
+  .result-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 991.98px) {
+  .main { width: 100%; }
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; overflow-x: auto; flex-direction: row; }
+  .settings-nav .nav { flex-direction: row; flex-wrap: nowrap; }
+  .settings-nav .nav-link,
+  .settings-nav-item { width: auto; white-space: nowrap; }
+  .calc-split { grid-template-columns: 1fr; }
+  .calc-right { position: static; }
+  .calc-result-panel { max-height: none; overflow: visible; }
+}
+
+@media (max-width: 767.98px) {
+  .topbar-title small { display: none; }
+  .page-header,
+  .app-page-header { padding: 1rem; }
+  .page-header { align-items: flex-start; }
+  .page-header > .d-flex,
+  .page-header .hero-actions { width: 100%; }
+  .section-title,
+  .app-section-heading { flex-direction: column; align-items: flex-start; }
+  .result-line { grid-template-columns: 1fr; gap: .15rem; }
+  .result-line-value { text-align: left; white-space: normal; }
+  .offcanvas.offcanvas-end { --bs-offcanvas-width: 100vw; }
+}
+
+@media (max-width: 575.98px) {
+  .card-actions .btn,
+  .toolbar-actions .btn { width: 100%; }
+  .input-group { flex-wrap: wrap; }
+  .input-group > .form-control,
+  .input-group > .form-select { flex-basis: 100%; border-radius: var(--bs-border-radius); }
+  .input-group > .input-group-text,
+  .input-group > .btn { margin-top: .25rem; border-radius: var(--bs-border-radius); }
+}
+
+
+/* --------------------------------------------------------------------------
+   REFINAMENTO 1 — DASHBOARD, CALCULADORA E CLIENTES
+   -------------------------------------------------------------------------- */
+.s3d-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem;
+  border-left-width: .35rem;
+}
+.s3d-stat-card > div { min-width: 0; }
+.s3d-stat-label { display: block; color: var(--bs-secondary-color); font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .035em; }
+.s3d-stat-card small { display: block; margin-top: .35rem; color: var(--bs-secondary-color); font-size: .78rem; }
+.s3d-stat-primary { border-left-color: var(--bs-primary); }
+.s3d-stat-success { border-left-color: var(--bs-success); }
+.s3d-stat-warning { border-left-color: var(--bs-warning); }
+.s3d-stat-info { border-left-color: var(--bs-info); }
+.s3d-stat-danger { border-left-color: var(--bs-danger); }
+.s3d-stat-success .s3d-stat-icon { color: var(--bs-success); background: rgba(var(--bs-success-rgb), .12); }
+.s3d-stat-warning .s3d-stat-icon { color: #9a6700; background: rgba(var(--bs-warning-rgb), .18); }
+.s3d-stat-info .s3d-stat-icon { color: #087990; background: rgba(var(--bs-info-rgb), .15); }
+.s3d-stat-danger .s3d-stat-icon { color: var(--bs-danger); background: rgba(var(--bs-danger-rgb), .12); }
+.s3d-stat-icon { width: 3rem; height: 3rem; flex: 0 0 3rem; display: grid; place-items: center; border-radius: .9rem; color: var(--bs-primary); background: rgba(var(--bs-primary-rgb), .11); font-size: 1.3rem; }
+.s3d-mini-metric { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid var(--s3d-border); border-radius: .85rem; background: var(--s3d-surface-muted); }
+.s3d-mini-metric strong { font-size: 1.1rem; }
+
+.calculator-workspace { grid-template-columns: minmax(0, 1.35fr) minmax(22rem, .9fr); }
+.calc-tabs .nav-link { border-radius: .65rem; border: 0; }
+.calc-tabs .nav-link.active { color: #fff; background: var(--bs-primary); }
+.calc-section-heading { padding-bottom: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--s3d-border); }
+.calc-left .form-card { box-shadow: none; border: 1px solid var(--s3d-border); }
+.calc-right .calc-explanation { margin-top: 1rem; }
+.calc-result-quick > div { min-width: 0; }
+.calc-result-body { background: var(--s3d-surface); }
+.result-line.is-divider { display: block; height: 1px; padding: 0; margin: .45rem 0; background: var(--s3d-border-strong); border: 0; }
+.result-line.is-strong .result-line-label,
+.result-line.is-strong .result-line-value { color: var(--bs-emphasis-color); font-weight: 700; }
+.calc-result-meta { padding-top: .75rem; }
+
+#clientFormTabs .nav-link { min-height: 3rem; display: flex; align-items: center; justify-content: center; }
+#clientForm .tab-pane { min-height: 24rem; }
+#clientForm .field-error { display: block; color: var(--bs-danger); margin-top: .3rem; }
+#clientForm .field-error:empty { display: none; }
+#clientForm .is-disabled { opacity: .58; }
+#clientForm .card.bg-body-tertiary { border-style: dashed; }
+#clientsTableBody td:first-child { padding-left: 1rem; }
+#clientsTableBody td:last-child { padding-right: 1rem; text-align: right; white-space: nowrap; }
+
+@media (max-width: 1199.98px) {
+  .calculator-workspace { grid-template-columns: minmax(0, 1.15fr) minmax(20rem, .85fr); }
+}
+@media (max-width: 991.98px) {
+  .calculator-workspace { grid-template-columns: 1fr; }
+  #clientForm .tab-pane { min-height: 0; }
+}
+
+
+/* ==========================================================================
+   REFINAMENTO DE TELAS 4, 5 E 6 — Impressoras, Consignações e Radar
+   ========================================================================== */
+.s3d-printer-kpi,.s3d-cons-kpi,.s3d-printer-card,.s3d-consignment-card,.radar-stat-card{border:1px solid var(--s3d-border-strong);box-shadow:var(--s3d-shadow);}
+.s3d-printer-kpi .card-body,.s3d-cons-kpi .card-body{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"icon label" "icon value" "icon help";column-gap:.85rem;align-items:center;padding:1rem;}
+.s3d-kpi-icon{grid-area:icon;width:2.75rem;height:2.75rem;border-radius:.85rem;display:grid;place-items:center;font-size:1.2rem;}
+.s3d-printer-kpi small,.s3d-cons-kpi small{grid-area:label;}
+.s3d-printer-kpi strong,.s3d-cons-kpi strong{grid-area:value;font-size:clamp(1.25rem,2vw,1.75rem);line-height:1.1;}
+.s3d-printer-kpi .card-body>span:last-child,.s3d-cons-kpi .card-body>span:last-child{grid-area:help;}
+.s3d-printer-card{transition:transform .18s ease,box-shadow .18s ease;}
+.s3d-printer-card:hover,.s3d-consignment-card:hover{transform:translateY(-2px);box-shadow:var(--s3d-shadow-hover);}
+.s3d-printer-icon,.s3d-table-icon{width:2.25rem;height:2.25rem;border-radius:.7rem;background:rgba(var(--bs-primary-rgb),.12);color:var(--bs-primary);display:grid;place-items:center;flex:0 0 auto;}
+.s3d-printer-life .progress,.s3d-live-print .progress{background:var(--bs-secondary-bg);}
+.s3d-live-metric,.s3d-cons-metric{height:100%;padding:.65rem;border:1px solid var(--s3d-border);border-radius:.7rem;background:var(--s3d-surface);}
+.s3d-live-metric small,.s3d-cons-metric small{display:block;color:var(--bs-secondary-color);font-size:.72rem;margin-bottom:.15rem;}
+.s3d-live-metric strong,.s3d-cons-metric strong{display:block;font-size:1rem;}
+.s3d-cons-filters .input-group{min-width:min(100%,20rem);}
+.s3d-cons-filters .form-select{min-width:10rem;}
+.s3d-consignment-card .card-body{padding:1.1rem;}
+.s3d-cons-help{top:5.5rem;}
+.s3d-step-list{display:grid;gap:1rem;}
+.s3d-step-list li{display:flex;gap:.75rem;align-items:flex-start;}
+.s3d-step-list li>span{width:1.75rem;height:1.75rem;display:grid;place-items:center;border-radius:50%;background:var(--bs-primary);color:#fff;font-weight:700;flex:0 0 auto;}
+.s3d-step-list strong,.s3d-step-list small{display:block;}
+.s3d-step-list small{color:var(--bs-secondary-color);margin-top:.15rem;}
+.radar-workspace-nav{overflow:hidden;}
+.radar-main-tabs .nav-link{min-width:11rem;justify-content:flex-start;border-radius:.75rem;padding:.7rem .85rem;color:var(--bs-body-color);}
+.radar-main-tabs .nav-link.active{background:var(--bs-primary);color:#fff;box-shadow:0 .25rem .75rem rgba(var(--bs-primary-rgb),.25);}
+.radar-tab-icon{width:2rem;height:2rem;border-radius:.6rem;background:rgba(var(--bs-primary-rgb),.1);display:grid;place-items:center;flex:0 0 auto;}
+.radar-main-tabs .nav-link.active .radar-tab-icon{background:rgba(255,255,255,.18);}
+.radar-tab-copy small{font-size:.7rem;opacity:.72;}
+.radar-stat-card .card-body{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"icon label" "icon value";gap:.15rem .75rem;padding:1rem;}
+.radar-stat-icon{grid-area:icon;width:2.6rem;height:2.6rem;display:grid;place-items:center;border-radius:.8rem;font-size:1.15rem;}
+.radar-stat-card small{grid-area:label;color:var(--bs-secondary-color);}
+.radar-stat-card strong{grid-area:value;font-size:1.65rem;line-height:1;}
+.radar-top-card{display:flex;align-items:center;gap:.85rem;padding:.85rem;margin-bottom:.65rem;}
+.radar-rank{width:1.9rem;height:1.9rem;display:grid;place-items:center;border-radius:50%;background:var(--bs-primary);color:#fff;font-weight:700;flex:0 0 auto;}
+.radar-action-item{display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem;background:var(--bs-body-bg);}
+.radar-column{flex:0 0 19rem;width:19rem;border:1px solid var(--s3d-border-strong);background:var(--bs-tertiary-bg);}
+.radar-column-header{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1rem;}
+.radar-column-title{display:flex;align-items:center;gap:.5rem;font-weight:700;}
+.radar-column-dot{width:.65rem;height:.65rem;border-radius:50%;background:var(--status-color);}
+.radar-column-count{min-width:1.7rem;height:1.7rem;padding:0 .4rem;display:grid;place-items:center;border-radius:999px;background:var(--bs-secondary-bg);font-size:.75rem;font-weight:700;}
+.radar-kanban-list{padding:.75rem;}
+.radar-kanban-card{padding:.85rem;border:1px solid var(--s3d-border);box-shadow:0 .15rem .45rem rgba(15,23,42,.06);}
+.radar-kanban-card h6{margin:.75rem 0 .25rem;line-height:1.3;}
+.radar-card-meta{font-size:.78rem;color:var(--bs-secondary-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.radar-card-metrics{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.8rem 0;}
+.radar-card-metrics>div{padding:.55rem;border-radius:.65rem;background:var(--bs-body-bg);border:1px solid var(--s3d-border);}
+.radar-card-metrics small,.radar-card-metrics strong{display:block;}
+.radar-card-metrics small{font-size:.7rem;color:var(--bs-secondary-color);}
+.radar-card-actions{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding-top:.7rem;border-top:1px solid var(--s3d-border);}
+.s3d-radar-editor{--bs-offcanvas-width:min(46rem,100vw);}
+.radar-editor-tabs .nav-link{min-width:8.5rem;padding:.65rem .8rem;border:1px solid var(--s3d-border);color:var(--bs-body-color);}
+.radar-editor-tabs .nav-link.active{color:#fff;background:var(--bs-primary);border-color:var(--bs-primary);}
+.radar-editor-tabs .nav-link span:last-child strong,.radar-editor-tabs .nav-link span:last-child small{display:block;}
+.radar-editor-tabs .nav-link small{font-size:.67rem;opacity:.72;}
+.radar-finance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;}
+.radar-finance-summary>div{padding:.85rem;border:1px solid var(--s3d-border);border-radius:.75rem;background:var(--bs-tertiary-bg);}
+.radar-finance-summary small,.radar-finance-summary strong{display:block;}
+@media(max-width:767.98px){.s3d-cons-filters{width:100%;}.s3d-cons-filters>*{width:100%;}.radar-main-tabs .nav-link{min-width:3rem;padding:.65rem;justify-content:center;}.radar-main-tabs .radar-tab-copy{display:none;}.radar-finance-summary{grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+/* =========================================================
+   Refatoração 7 e 8 — Configurações, Financeiro e Relatórios
+   ========================================================= */
+.min-w-0{min-width:0;}
+
+/* Configurações */
+.settings-shell{max-width:100%;}
+.settings-layout{display:grid;grid-template-columns:minmax(15rem,18rem) minmax(0,1fr);gap:1.5rem;align-items:start;}
+.settings-nav{position:sticky;top:5rem;max-height:calc(100vh - 6rem);overflow-y:auto;}
+.settings-nav .nav-link{border:1px solid transparent;border-radius:.75rem;padding:.75rem;color:var(--bs-body-color);}
+.settings-nav .nav-link:hover{background:var(--bs-tertiary-bg);border-color:var(--s3d-border);}
+.settings-nav .nav-link.active{background:var(--bs-primary);color:#fff;box-shadow:0 .35rem .8rem rgba(var(--bs-primary-rgb),.2);}
+.settings-nav .nav-link.active small{color:rgba(255,255,255,.78)!important;}
+.settings-nav-icon{width:2.25rem;height:2.25rem;display:grid;place-items:center;border-radius:.65rem;background:var(--bs-tertiary-bg);font-size:1rem;}
+.settings-nav .nav-link.active .settings-nav-icon{background:rgba(255,255,255,.18);}
+.settings-content{min-width:0;}
+.settings-section-icon{width:2.75rem;height:2.75rem;display:grid;place-items:center;border-radius:.8rem;background:rgba(var(--bs-primary-rgb),.12);font-size:1.25rem;}
+.settings-card{min-width:0;overflow:hidden;}
+.settings-card h3{font-size:1.05rem;margin-bottom:.25rem;}
+.settings-card p{color:var(--bs-secondary-color);margin-bottom:0;}
+.settings-card .card-actions{padding-top:.75rem;border-top:1px solid var(--s3d-border);}
+.settings-card .integration-header>div:nth-child(2){min-width:0;flex:1;}
+.integration-logo{width:3rem;height:3rem;display:grid;place-items:center;border-radius:.85rem;background:var(--bs-tertiary-bg);border:1px solid var(--s3d-border);font-weight:800;flex:0 0 auto;}
+.save-state{display:inline-flex;align-items:center;min-height:2rem;padding:.35rem .65rem;border:1px solid var(--s3d-border);border-radius:999px;background:var(--bs-tertiary-bg);font-size:.8rem;color:var(--bs-secondary-color);}
+.database-status-card{align-items:center;}
+.database-status-card p{margin:.25rem 0 0;}
+
+/* Financeiro */
+.s3d-fin-kpi .card-body{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"icon label" "icon value" "icon note";column-gap:.85rem;align-items:center;}
+.s3d-fin-icon{grid-area:icon;width:3rem;height:3rem;display:grid;place-items:center;border-radius:.85rem;font-size:1.2rem;}
+.s3d-fin-kpi small{grid-area:label;}
+.s3d-fin-kpi strong{grid-area:value;font-size:1.45rem;line-height:1.2;overflow-wrap:anywhere;}
+.s3d-fin-kpi .card-body>span:last-child{grid-area:note;color:var(--bs-secondary-color);font-size:.76rem;}
+.s3d-finance-bars{display:grid;gap:1.1rem;}
+.s3d-finance-bar-item .progress{height:.7rem;background:var(--bs-secondary-bg);}
+.s3d-metric-list{display:grid;gap:.65rem;}
+.s3d-metric-item{display:flex;align-items:center;gap:.8rem;padding:.75rem;border:1px solid var(--s3d-border);border-radius:.75rem;background:var(--bs-tertiary-bg);}
+.s3d-metric-icon{width:2.35rem;height:2.35rem;display:grid;place-items:center;border-radius:.65rem;background:rgba(var(--bs-primary-rgb),.12);color:var(--bs-primary);flex:0 0 auto;}
+.s3d-metric-item strong{font-size:1.05rem;overflow-wrap:anywhere;}
+
+/* Relatórios */
+.s3d-report-kpi .card-body{position:relative;padding-top:1.1rem;}
+.s3d-report-icon{width:2.5rem;height:2.5rem;display:grid;place-items:center;border-radius:.7rem;margin-bottom:.75rem;}
+.s3d-report-kpi strong{display:block;font-size:1.25rem;overflow-wrap:anywhere;}
+.s3d-reports-page #reportResult>.row>.col-12>.card,
+.s3d-reports-page #reportResult section.card{overflow:hidden;}
+.s3d-reports-page .table th{white-space:nowrap;}
+
+@media(max-width:991.98px){
+  .settings-layout{grid-template-columns:1fr;}
+  .settings-nav{position:static;max-height:none;display:flex;flex-direction:row;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;}
+  .settings-nav .nav-link{flex:0 0 auto;min-width:12rem;}
+}
+@media(max-width:575.98px){
+  .settings-nav .nav-link{min-width:3.25rem;padding:.65rem;justify-content:center;}
+  .settings-nav .nav-link>div{display:none;}
+  .settings-nav-icon{width:2rem;height:2rem;}
+  .s3d-fin-kpi strong{font-size:1.25rem;}
+}
+
+
+/* Refatoração — Pedidos, Produtos, Produção e Orçamentos */
+.s3d-orders-kpi strong,.s3d-products-kpi strong,.s3d-quotes-kpi strong{display:block;font-size:1.55rem;line-height:1.15;margin-top:.25rem;overflow-wrap:anywhere;}
+.s3d-order-card{border-left:.3rem solid var(--bs-primary);}
+.s3d-order-card .row.g-2>div{padding:.55rem .65rem;border:1px solid var(--s3d-border);border-radius:.65rem;background:var(--bs-tertiary-bg);}
+.s3d-product-search{min-width:min(100%,20rem);}
+.s3d-product-card{transition:transform .18s ease,box-shadow .18s ease;}
+.s3d-product-card:hover{transform:translateY(-2px);box-shadow:0 .7rem 1.4rem rgba(15,23,42,.1)!important;}
+.s3d-product-card .product-metrics>div,.s3d-product-card .row.g-2>div{min-width:0;}
+.s3d-production-kpi .card-body{display:flex;align-items:center;gap:.9rem;}
+.s3d-production-kpi small,.s3d-production-kpi strong,.s3d-production-kpi span{display:block;}
+.s3d-production-kpi strong{font-size:1.6rem;line-height:1.1;}
+.s3d-production-kpi .card-body>div>span{font-size:.76rem;color:var(--bs-secondary-color);}
+.s3d-kpi-icon{width:3rem;height:3rem;border-radius:.8rem;display:grid;place-items:center;flex:0 0 auto;font-size:1.2rem;}
+.production-screen .kanban-column,.kanban-board .kanban-column{min-height:32rem;}
+.kanban-column>.card-header{position:sticky;top:0;z-index:2;}
+.kanban-card h4{font-size:1rem;margin:.65rem 0;}
+.kanban-meta{font-size:.8rem;color:var(--bs-secondary-color);}
+.kanban-actions{display:flex;flex-wrap:wrap;gap:.5rem;padding-top:.75rem;border-top:1px solid var(--s3d-border);}
+#quotesTableBody td{vertical-align:middle;}
+#quotesTableBody td:last-child{white-space:nowrap;}
+@media(max-width:767.98px){.s3d-product-search{width:100%;}.s3d-order-card .card-body{padding:1rem;}#quotesTableBody td:last-child{white-space:normal;}}
+
+/* Refatoração — Manutenção, Embalagens e Adicionais */
+.s3d-page-icon{width:3rem;height:3rem;border-radius:.85rem;display:grid;place-items:center;flex:0 0 auto;font-size:1.25rem;}
+.s3d-table-icon{width:2.25rem;height:2.25rem;border-radius:.65rem;display:grid;place-items:center;flex:0 0 auto;}
+.s3d-maintenance-kpi .card-body{min-height:7.25rem;}
+.s3d-maintenance-page .form-switch .form-check-input{width:2.35rem;}
+.s3d-maintenance-page table td,.s3d-packaging-page table td,.s3d-addons-page table td{vertical-align:middle;}
+.s3d-maintenance-page table th:nth-child(n+2),.s3d-packaging-page table th:nth-child(n+3),.s3d-addons-page table th:nth-child(3){white-space:nowrap;}
+#addonsChecklist .list-group-item{cursor:pointer;transition:background-color .15s ease,border-color .15s ease;}
+#addonsChecklist .list-group-item:hover{background:var(--bs-tertiary-bg);}
+#addonsChecklist .form-check-input{flex:0 0 auto;}
+@media(max-width:767.98px){
+  .s3d-maintenance-page .app-page-header,.s3d-packaging-page .app-page-header,.s3d-addons-page .app-page-header{align-items:stretch!important;}
+  .s3d-maintenance-page .app-page-header>.btn,.s3d-packaging-page .app-page-header>.btn,.s3d-addons-page .app-page-header>.btn{width:100%;justify-content:center;}
+}
+
+
+/* Ações compactas: mantém editar/excluir lado a lado em tabelas e cards. */
+.s3d-action-group,
+.table .btn-group,
+.table .btn-toolbar {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.table td.text-nowrap {
+  min-width: 5.5rem;
+}
+.table td:last-child > .btn-group,
+.table td:last-child > .btn-toolbar,
+.table td:last-child > .d-inline-flex {
+  vertical-align: middle;
+}
+.table .btn-group > .btn,
+.table .btn-toolbar .btn {
+  flex: 0 0 auto;
+  width: auto;
+}
+@media (max-width: 575.98px) {
+  .table-responsive .table td.text-nowrap { min-width: 5.5rem; }
+  .table .btn-group > .btn { min-width: 2rem; }
+}
+\n\n/* Ações de registro — componente horizontal estável. */\n.s3d-actions {\n  display: inline-flex;\n  flex-direction: row;\n  flex-wrap: nowrap;\n  align-items: center;\n  justify-content: flex-end;\n  gap: .25rem;\n  width: max-content;\n  min-width: max-content;\n  vertical-align: middle;\n}\n.s3d-actions > .btn {\n  position: static;\n  display: inline-flex;\n  flex: 0 0 auto;\n  align-items: center;\n  justify-content: center;\n  width: 2rem;\n  min-width: 2rem;\n  height: 2rem;\n  padding: .25rem .45rem;\n  margin: 0;\n  white-space: nowrap;\n}\n.table td:has(> .s3d-actions) {\n  min-width: 5rem;\n  white-space: nowrap;\n  text-align: end;\n}\n

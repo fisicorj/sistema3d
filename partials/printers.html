@@ -1,0 +1,43 @@
+<div class="s3d-printers-page">
+  <div class="app-page-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+      <span class="text-uppercase text-primary fw-semibold small d-block mb-1">Operação da frota</span>
+      <h1 class="h3 mb-1"><i class="bi bi-printer me-2"></i>Impressoras</h1>
+      <p class="text-body-secondary mb-0">Acompanhe telemetria, disponibilidade, utilização e custo operacional das impressoras.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-outline-secondary" type="button" onclick="loadPrinterDashboard()"><i class="bi bi-arrow-clockwise me-1"></i>Atualizar</button>
+      <button class="btn btn-primary" type="button" onclick="showPrinterModal()"><i class="bi bi-plus-lg me-1"></i>Nova impressora</button>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="card s3d-printer-kpi h-100"><div class="card-body"><span class="s3d-kpi-icon text-primary bg-primary-subtle"><i class="bi bi-printer"></i></span><small class="text-body-secondary">Cadastradas</small><strong id="printerKpiTotal">0</strong><span class="small text-body-secondary">Impressoras na frota</span></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card s3d-printer-kpi h-100"><div class="card-body"><span class="s3d-kpi-icon text-success bg-success-subtle"><i class="bi bi-wifi"></i></span><small class="text-body-secondary">Conectadas</small><strong id="printerKpiOnline">0</strong><span class="small text-body-secondary">Com telemetria ativa</span></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card s3d-printer-kpi h-100"><div class="card-body"><span class="s3d-kpi-icon text-danger bg-danger-subtle"><i class="bi bi-play-circle"></i></span><small class="text-body-secondary">Em produção</small><strong id="printerKpiBusy">0</strong><span class="small text-body-secondary">Imprimindo ou preparando</span></div></div></div>
+    <div class="col-6 col-xl-3"><div class="card s3d-printer-kpi h-100"><div class="card-body"><span class="s3d-kpi-icon text-secondary bg-secondary-subtle"><i class="bi bi-wifi-off"></i></span><small class="text-body-secondary">Offline</small><strong id="printerKpiOffline">0</strong><span class="small text-body-secondary">Configuradas sem conexão</span></div></div></div>
+  </div>
+
+  <section class="card s3d-section-card mb-4">
+    <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+      <div><h2 class="h5 mb-1">Situação da frota</h2><p class="small text-body-secondary mb-0">Estado em tempo real, progresso e vida útil de cada equipamento.</p></div>
+      <span class="badge text-bg-light border"><i class="bi bi-broadcast me-1"></i>Atualização automática</span>
+    </div>
+    <div class="card-body"><div class="row g-3" id="printerDashboardGrid"></div></div>
+  </section>
+
+  <section class="card s3d-section-card">
+    <div class="card-header bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+      <div><h2 class="h5 mb-1">Cadastro e custos</h2><p class="small text-body-secondary mb-0">Parâmetros utilizados na precificação e no controle de vida útil.</p></div>
+      <span class="small text-body-secondary">Custo/h inclui depreciação, energia e manutenção</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Impressora</th><th>Investimento</th><th>Vida útil</th><th>Potência</th><th>Velocidade</th><th>Custo operacional</th><th class="text-end">Ações</th></tr></thead>
+          <tbody id="printersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>

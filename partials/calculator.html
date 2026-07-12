@@ -1,0 +1,295 @@
+ <div class="page-header app-page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<h1 class="h3 mb-1">🧮 Calculadora de Preço</h1>
+<p class="text-body-secondary mb-0">Calcule o preço a partir do custo/hora da impressora, material, mão de obra e margem</p>
+</div>
+<div class="calc-split calculator-workspace">
+<!-- ESQUERDA: formulário em sub-abas -->
+<section class="calc-left" aria-label="Dados do projeto">
+<div class="calc-tabs nav nav-pills bg-body-tertiary border rounded-3 p-2 mb-3 flex-nowrap overflow-x-auto gap-1">
+<button class="calc-tab-btn active nav-link text-nowrap" onclick="switchCalcTab('projeto', this)">📝 Projeto</button>
+<button class="calc-tab-btn nav-link text-nowrap" onclick="switchCalcTab('custos', this)">⚡ Custos</button>
+<button class="calc-tab-btn nav-link text-nowrap" onclick="switchCalcTab('pos', this)">🔧 Pós-proc.</button>
+<button class="calc-tab-btn nav-link text-nowrap" onclick="switchCalcTab('venda', this)">📋 Venda</button>
+</div>
+<!-- Aba 1: Projeto -->
+<div class="calc-tab-panel active d-block tab-pane" id="calcTab-projeto">
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4">
+<div class="calc-section-heading"><h2 class="h5 mb-1">📝 Dados do Projeto</h2><p class="small text-body-secondary mb-0">Preencha os dados desta etapa para atualizar o preço em tempo real.</p></div>
+<div id="gcodePanel" style="display:none;"></div>
+<div style="margin-bottom:15px;">
+<button class="btn btn-primary" id="gcodeImportBtn" onclick="importGcode()" style="width:100%; font-size:0.9em;">
+                                    📂 Importar G-code (Bambu / Prusa / Cura / OrcaSlicer / .3mf)
+                                </button>
+<small style="display:block; margin-top:5px;">
+                                    Preenche peso, tempo e materiais AMS automaticamente
+                                </small>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Descrição do item <small class="text-body-secondary" style="font-weight:400;;">(aparece no orçamento para o cliente)</small></label>
+<input class="form-control" id="calcItemDescription" maxlength="120" placeholder="Ex: Kettlebell 28kg escala 1:1, acabamento liso" type="text"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Cliente</label>
+<select class="form-select" id="calcClientId"><option value="0">Sem cliente</option></select>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Tipo de Trabalho</label>
+<select class="form-select" id="calcWorkType">
+<option value="simple">Brinde Simples</option>
+<option selected="" value="personalized">Brinde Personalizado</option>
+<option value="technical">Peça Técnica</option>
+<option value="custom">Projeto Sob Medida</option>
+</select>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Impressora</label>
+<select class="form-select" id="calcPrinter"></select>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Material
+                                    <small class="text-body-secondary" id="calcEnergyFactorBadge" style="margin-left:8px;font-size:0.75em;;font-weight:400;"></small>
+</label>
+<select class="form-select" id="calcMaterial" onchange="updateCalcEnergyFactorBadge();updatePriceCalculation()"></select>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Peso da Peça</label>
+<input class="form-control" id="calcWeight" placeholder="Ex.: 125g ou 0,25kg" type="text" value="120g"/>
+<small>Aceita 125g, 0,25kg ou apenas 125.</small>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Tempo de Impressão</label>
+<input class="form-control" id="calcPrintTime" placeholder="Ex.: 15m, 1h30m ou 01:30" type="text" value="8h"/>
+<small>Aceita 15m, 1h30m, 2h15m, 01:30 ou horas decimais.</small>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+<div class="field-group mb-3">
+<label class="form-label">🎨 Trocas de Cor</label>
+<input class="form-control" id="calcColorChanges" min="0" oninput="updatePriceCalculation()" placeholder="0" step="1" type="number" value="0"/>
+<small>Qtd. de vezes que troca cor/filamento durante a impressão.</small>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Custo por Purga (R$)</label>
+<input class="form-control" id="calcPurgeCostPerChange" min="0" oninput="updatePriceCalculation()" placeholder="3.00" step="0.50" type="number" value="3.00"/>
+<small>Filamento desperdiçado por troca. Padrão: R$ 3,00.</small>
+</div>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Nível de Dificuldade</label>
+<select class="form-select" id="calcDifficulty">
+<option value="1">Simples</option>
+<option selected="" value="1.2">Médio</option>
+<option value="1.5">Difícil</option>
+<option value="2.0">Muito Difícil</option>
+</select>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Quantidade</label>
+<input class="form-control" id="calcQuantity" min="1" step="1" type="number" value="1"/>
+</div>
+</div>
+</div>
+<!-- Aba 2: Custos Adicionais -->
+<div class="calc-tab-panel d-none tab-pane" id="calcTab-custos">
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4">
+<div class="calc-section-heading"><h2 class="h5 mb-1">📦 Embalagem</h2><p class="small text-body-secondary mb-0">Preencha os dados desta etapa para atualizar o preço em tempo real.</p></div>
+<div class="field-group mb-3">
+<label class="form-label">Tipo de embalagem</label>
+<select class="form-select" id="calcPackaging" onchange="updatePriceCalculation()"></select>
+<small>O peso da embalagem é somado ao frete automaticamente</small>
+</div>
+</div>
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4" style="margin-top:12px;">
+<h3>⭐ Adicionais
+                                <span class="text-body-secondary" style="font-size:0.72em;;font-weight:400;">custo total: R$ <span id="addonsTotalDisplay">0.00</span></span>
+</h3>
+<div id="addonsChecklist">
+<p class="text-body-secondary" style=";font-size:0.83em;">Carregando adicionais...</p>
+</div>
+</div>
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4" style="margin-top:12px;">
+<div class="calc-section-heading"><h2 class="h5 mb-1">⚡ Taxas &amp; Descontos</h2><p class="small text-body-secondary mb-0">Preencha os dados desta etapa para atualizar o preço em tempo real.</p></div>
+<div class="field-group mb-3">
+<label class="form-label">Taxa de Personalização (R$)</label>
+<input class="form-control" id="calcCustomFee" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Modelagem / Design (R$)</label>
+<input class="form-control" id="calcDesignFee" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Acabamento Especial (R$)</label>
+<input class="form-control" id="calcFinishFee" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Desconto por Lote (%)</label>
+<input class="form-control" id="calcBulkDiscount" max="50" min="0" step="5" type="number" value="0"/>
+<small>Automático: ≥5 peças → 5%, ≥10 peças → 10%</small>
+</div>
+</div>
+</div>
+<!-- Aba 3: Pós-processamento -->
+<div class="calc-tab-panel d-none tab-pane" id="calcTab-pos">
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4">
+<div class="calc-section-heading"><h2 class="h5 mb-1">🔧 Pós-processamento</h2><p class="small text-body-secondary mb-0">Preencha os dados desta etapa para atualizar o preço em tempo real.</p></div>
+<div class="field-group mb-3">
+<label class="form-label">Preparação / Setup (min)</label>
+<input class="form-control" id="calcSetupTime" min="0" type="number" value="15"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Remoção de suporte (min)</label>
+<input class="form-control" id="calcSupportTime" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Lixamento (min)</label>
+<input class="form-control" id="calcSandingTime" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Pintura / acabamento (min)</label>
+<input class="form-control" id="calcPaintingTime" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Montagem / encaixe (min)</label>
+<input class="form-control" id="calcAssemblyTime" min="0" type="number" value="0"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Atendimento ao cliente (min)</label>
+<input class="form-control" id="calcServiceTime" min="0" type="number" value="0"/>
+</div>
+<div class="info-box alert alert-info" style="margin-top:5px;">
+                                Mão de obra total: <strong id="totalLaborTime">15 min</strong>
+                                — R$ <strong id="totalLaborCostInfo">—</strong>
+</div>
+</div>
+</div>
+<!-- Aba 4: Venda & Fiscal -->
+<div class="calc-tab-panel d-none tab-pane" id="calcTab-venda">
+<div class="form-card app-section-card card border-0 shadow-sm p-3 p-lg-4 mb-4">
+<div class="calc-section-heading"><h2 class="h5 mb-1">📋 Venda &amp; Fiscal</h2><p class="small text-body-secondary mb-0">Preencha os dados desta etapa para atualizar o preço em tempo real.</p></div>
+<div class="field-group mb-3">
+<label class="form-label">Canal de venda</label>
+<select class="form-select" id="calcSalesChannel" onchange="onSalesChannelChange()">
+<option value="direct">Direto — Pix / WhatsApp (0%)</option>
+<option value="elo7">Elo7 (15%)</option>
+<option value="ml">Mercado Livre (16%)</option>
+<option value="shopee">Shopee (14%)</option>
+<option value="custom">Outra plataforma</option>
+</select>
+</div>
+<div class="field-group mb-3" id="customPlatformFeeGroup" style="display:none;">
+<label class="form-label">Taxa da plataforma (%)</label>
+<input class="form-control" id="calcPlatformFee" max="50" min="0" oninput="updatePriceCalculation()" step="0.5" type="number" value="15"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Tipo de entrega</label>
+<select class="form-select" id="calcDeliveryType" onchange="onDeliveryTypeChange()">
+<option value="none">Sem frete — venda local / retirada</option>
+<option selected="" value="cep">Por CEP / Melhor Envio</option>
+<option value="manual">Outro serviço (Uber Moto, motoboy…)</option>
+</select>
+</div>
+<!-- Painel: entrega por CEP -->
+<div id="deliveryCepPanel">
+<div class="field-group mb-3">
+<label class="form-label">CEP de destino para frete</label>
+<div class="input-group">
+<input class="form-control" id="calcDestCep" maxlength="9" onblur="lookupCep(); invalidateMelhorEnvioQuote();" oninput="invalidateMelhorEnvioQuote()" placeholder="Ex.: 01001-000"  type="text"/>
+<button class="btn btn-primary" onclick="lookupCep(); quoteMelhorEnvioFromCalculator();" type="button">Cotar</button>
+</div>
+<input id="calcDestUf" type="hidden"/>
+<small id="calcCepStatus">Sem CEP: usa a tabela padrão por peso.</small>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Caixa para cotação Melhor Envio (cm)</label>
+<div class="row g-2"><div class="col-4">
+<input class="form-control" id="calcBoxLength" min="1" oninput="invalidateMelhorEnvioQuote()" placeholder="Compr." step="1" type="number" value="15"/></div><div class="col-4"><input class="form-control" id="calcBoxWidth" min="1" oninput="invalidateMelhorEnvioQuote()" placeholder="Larg." step="1" type="number" value="10"/></div><div class="col-4"><input class="form-control" id="calcBoxHeight" min="1" oninput="invalidateMelhorEnvioQuote()" placeholder="Alt." step="1" type="number" value="5"/></div></div>
+<small id="melhorEnvioCalcStatus">Configure o Melhor Envio em ⚙️ Configurações ou use a tabela local.</small>
+<div class="d-flex gap-2 mt-2 flex-wrap">
+<button class="btn btn-primary" onclick="quoteMelhorEnvioFromCalculator()" type="button">🚚 Cotar Melhor Envio</button>
+<button class="btn-warning btn" onclick="clearMelhorEnvioQuote()" type="button">Usar tabela local</button>
+</div>
+</div>
+</div>
+<!-- Painel: serviço manual (Uber Moto, motoboy, etc.) -->
+<div id="deliveryManualPanel" style="display:none;">
+<div class="field-group mb-3">
+<label class="form-label">Nome do serviço</label>
+<input class="form-control" id="calcManualShippingName" maxlength="60" oninput="updatePriceCalculation()" placeholder="Ex.: Uber Moto, Motoboy, Lalamove" type="text"/>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Valor do frete (R$)</label>
+<input class="form-control" id="calcManualShippingPrice" min="0" oninput="updatePriceCalculation()" step="0.50" type="number" value="0"/>
+</div>
+</div>
+<div class="field-group mb-3">
+<label class="form-label">Urgência</label>
+<select class="form-select" id="calcUrgency" onchange="onUrgencyChange()">
+<option value="0">Normal</option>
+<option value="20">Urgente — 48h (+20%)</option>
+<option value="40">Urgente — 24h (+40%)</option>
+<option value="custom">Personalizado</option>
+</select>
+</div>
+<div class="field-group mb-3" id="customUrgencyGroup" style="display:none;">
+<label class="form-label">Markup de urgência (%)</label>
+<input class="form-control" id="calcUrgencyMarkup" max="200" min="0" oninput="updatePriceCalculation()" step="5" type="number" value="0"/>
+</div>
+<div class="info-box alert alert-info" style="margin-top:5px;">
+                                A taxa de falha é configurada em ⚙️ Configurações e entra como cobertura de perdas.
+                            </div>
+</div>
+</div>
+</section>
+<!-- DIREITA: painel de resultado fixo -->
+<aside class="calc-right" aria-label="Resumo do cálculo">
+<div class="calc-result-panel">
+<div class="calc-result-header">
+<div class="d-flex align-items-center justify-content-between gap-2">
+<div>
+<div class="result-price-label"><i class="bi bi-cash-coin me-1"></i>Preço sugerido de venda</div>
+<div class="result-price-value" id="calcResultPrice">R$ 0,00</div>
+<div class="small mt-2 opacity-75"><i class="bi bi-lightning-charge-fill me-1"></i>Atualização em tempo real</div>
+</div>
+<i class="bi bi-calculator fs-2 opacity-75"></i>
+</div>
+</div>
+<div class="calc-result-quick row g-0 border-bottom">
+  <div class="col-6 p-3 border-end">
+    <span class="d-block small text-body-secondary">Lucro estimado</span>
+    <strong class="fs-5 text-success" id="calcResultProfit">R$ 0,00</strong>
+  </div>
+  <div class="col-6 p-3">
+    <span class="d-block small text-body-secondary">Margem sobre venda</span>
+    <strong class="fs-5" id="calcResultMargin">0%</strong>
+  </div>
+</div>
+<div class="calc-result-body"><div id="calcResultLines"></div></div>
+<button class="btn btn-primary mx-3 mb-3" onclick="updatePriceCalculation()"><i class="bi bi-arrow-repeat"></i> Recalcular preço</button>
+<div class="result-actions">
+<button class="btn btn-primary" onclick="saveQuoteAsOrder()">
+                            💾 Salvar como Pedido
+                        </button>
+<button class="btn btn-success" onclick="saveCalculationAsProduct()">
+                            🏷️ Salvar como Produto
+                        </button>
+<button class="btn btn-warning" onclick="saveCurrentQuote()">
+                            💾 Salvar Orçamento
+                        </button>
+<button class="btn btn-outline-success" onclick="shareClientQuote()">
+                            📤 Orçamento para Cliente (HTML)
+                        </button>
+<button class="btn btn-success" onclick="copyWhatsAppQuote()">
+                            💬 Copiar Mensagem WhatsApp
+                        </button>
+<button class="btn btn-outline-primary" onclick="generatePDF()">
+                            📄 Exportar Completo (interno)
+                        </button>
+</div>
+</div>
+<div class="info-box alert alert-info calc-explanation small">
+<strong><i class="bi bi-info-circle me-1"></i>Como o cálculo é feito:</strong><br/>
+material + máquina/hora + mão de obra + adicionais → cobertura de falhas → margem → venda. O frete fica separado para não distorcer o lucro da peça.
+</div>
+<!-- Detalhamento oculto (usado internamente pelo calcResult) -->
+<div id="calcResult" style="display:none;"></div>
+</aside>
+</div>

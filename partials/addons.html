@@ -1,0 +1,40 @@
+<div class="s3d-addons-page">
+  <div class="app-page-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <span class="s3d-page-icon bg-info-subtle text-info-emphasis"><i class="bi bi-stars"></i></span>
+      <div>
+        <h1 class="h3 mb-1">Adicionais</h1>
+        <p class="text-body-secondary mb-0">Itens extras que podem ser acrescentados ao custo e ao preço final do projeto.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary d-inline-flex align-items-center gap-2" type="button" onclick="showAddonModal()">
+      <i class="bi bi-plus-lg"></i><span>Novo adicional</span>
+    </button>
+  </div>
+
+  <div id="addonsSummary" class="row g-3 mb-4"></div>
+
+  <section class="card border shadow-sm overflow-hidden">
+    <div class="card-header bg-body d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+      <div>
+        <h2 class="h5 mb-1">Catálogo de adicionais</h2>
+        <p class="text-body-secondary small mb-0">Organize acessórios, acabamentos e serviços opcionais por categoria.</p>
+      </div>
+      <span class="badge text-bg-light border" id="addonsTableCount">0 adicionais</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">Categoria</th>
+            <th scope="col" class="text-end">Custo unitário</th>
+            <th scope="col">Descrição</th>
+            <th scope="col" class="text-end">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="addonsTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
