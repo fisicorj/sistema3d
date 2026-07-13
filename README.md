@@ -1015,8 +1015,6 @@ Informações exibidas quando disponíveis:
 
 A configuração principal é persistida na tabela de impressoras. Arquivos JSON antigos podem existir apenas por compatibilidade/migração.
 
-> Nunca publique access codes no GitHub.
-
 ### Melhor Envio
 
 Configuração em:
@@ -1402,56 +1400,6 @@ app_data/backups/
     └── attachments/
 ```
 
----
-
-## Dados e arquivos sensíveis
-
-A pasta `app_data/` contém dados reais e deve permanecer fora do Git.
-
-O `.gitignore` já prevê:
-
-```gitignore
-app_data/*
-!app_data/.gitkeep
-*.sqlite
-*.sqlite3
-*.db
-.env
-.env.*
-```
-
-### Nunca publique
-
-- banco de dados real;
-- backups;
-- access code de impressora;
-- token Melhor Envio;
-- Client Secret do Mercado Livre;
-- API key Etsy;
-- senhas;
-- arquivos de sessão;
-- anexos de clientes;
-- dados pessoais.
-
-### Antes do primeiro commit público
-
-Execute uma verificação manual:
-
-```bash
-git status
-find app_data -maxdepth 2 -type f
-```
-
-O repositório público deve conter apenas:
-
-```text
-app_data/.gitkeep
-```
-
----
-
-## Configuração por variáveis de ambiente
-
 ### Hosts adicionais
 
 ```bash
@@ -1661,90 +1609,6 @@ Resultado esperado:
 ok
 ```
 
-### Convenções recomendadas
-
-- evite SQL direto novo no frontend;
-- prefira API REST;
-- mantenha regras de negócio no backend;
-- use transações para operações compostas;
-- use `textContent` para conteúdo simples;
-- sanitize HTML dinâmico;
-- não exponha `password_hash`;
-- não grave segredos no frontend;
-- não crie novos CSS globais para componentes Bootstrap;
-- use prefixo `s3d-` para componentes específicos;
-- atualize a versão do Service Worker ao mudar recursos cacheados.
-
-### Adicionar um novo módulo
-
-Fluxo recomendado:
-
-1. criar modelo SQLAlchemy;
-2. incluir evolução de schema;
-3. criar endpoints REST;
-4. criar partial HTML;
-5. criar módulo JavaScript;
-6. adicionar entrada no menu;
-7. integrar permissões;
-8. integrar auditoria;
-9. adicionar notificações, quando necessário;
-10. testar SQLite, PostgreSQL e SQL Server.
-
----
-
-## Checklist antes de publicar no GitHub
-
-### Segurança e privacidade
-
-- [ ] remover todos os bancos reais;
-- [ ] remover backups;
-- [ ] remover `auth_sessions.sqlite`;
-- [ ] remover tokens;
-- [ ] remover access codes Bambu;
-- [ ] remover credenciais Etsy/ML/Melhor Envio;
-- [ ] remover dados pessoais de clientes;
-- [ ] remover anexos reais;
-- [ ] conferir histórico do Git, não apenas a pasta atual;
-- [ ] trocar credenciais que já tenham sido commitadas.
-
-### Estrutura
-
-- [ ] manter `app_data/.gitkeep`;
-- [ ] confirmar `.gitignore`;
-- [ ] remover `__pycache__`;
-- [ ] remover arquivos `.pyc`;
-- [ ] remover ZIPs e temporários;
-- [ ] manter apenas CSS realmente carregado;
-- [ ] manter Bootstrap e Icons oficiais.
-
-### Documentação
-
-- [ ] inserir screenshots;
-- [ ] preencher URL real do repositório;
-- [ ] adicionar `LICENSE`;
-- [ ] adicionar instruções de contribuição;
-- [ ] adicionar changelog ou releases;
-- [ ] documentar versão estável;
-- [ ] informar limitações conhecidas.
-
-### Testes mínimos
-
-- [ ] iniciar no Windows;
-- [ ] iniciar no Linux;
-- [ ] criar cliente;
-- [ ] criar produto;
-- [ ] cadastrar material;
-- [ ] calcular preço;
-- [ ] criar orçamento;
-- [ ] converter para pedido;
-- [ ] mover pedido na produção;
-- [ ] registrar pagamento;
-- [ ] registrar consignação;
-- [ ] gerar relatório;
-- [ ] criar e restaurar backup;
-- [ ] testar login ativado/desativado;
-- [ ] testar integração selecionada.
-
 ---
 
 ## Roadmap sugerido
@@ -1802,21 +1666,6 @@ Antes do pull request:
 - confirme que não há segredos;
 - atualize documentação;
 - descreva impacto em SQLite/PostgreSQL/SQL Server.
-
----
-
-## Licença
-
-O pacote atual não contém um arquivo `LICENSE` identificado nesta revisão.
-
-Antes de publicar, escolha uma licença apropriada. Exemplos:
-
-- MIT, para uso e modificação amplos;
-- Apache-2.0, para licença permissiva com cláusulas de patentes;
-- GPL-3.0, para exigir distribuição de derivados sob a mesma licença;
-- licença proprietária, se o objetivo for restringir uso e redistribuição.
-
-Depois de escolher, adicione um arquivo `LICENSE` na raiz e atualize esta seção.
 
 ---
 
