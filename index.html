@@ -8,7 +8,7 @@
 <link href="manifest.webmanifest" rel="manifest"/>
 <link href="assets/icon-192.png" rel="apple-touch-icon"/>
 <title>3D Print Pro — Gestão de Custos</title>
-<link href="vendor/bootstrap.min.css?v=5.3.6-local" rel="stylesheet"/><link href="vendor/bootstrap-icons/bootstrap-icons.min.css?v=1.13.1-official" rel="stylesheet"/><link href="css/sistema3d.css?v=9.3.0" rel="stylesheet"/></head>
+<link href="vendor/bootstrap.min.css?v=5.3.6-local" rel="stylesheet"/><link href="vendor/bootstrap-icons/bootstrap-icons.min.css?v=1.13.1-official" rel="stylesheet"/><link href="css/sistema3d.css?v=10.0.0" rel="stylesheet"/></head>
 <body class="bg-body-tertiary">
 <div class="app d-flex min-vh-100 w-100 overflow-hidden">
 <!-- ═══════════════ SIDEBAR ═══════════════ -->
@@ -176,21 +176,21 @@
 <!-- Módulos -->
 <script src="js/constants.js?v=3.2.0"></script>
 <script src="js/relational-api.js?v=8.4.0"></script>
-<script src="js/relational-sync.js?v=11"></script>
-<script src="js/db.js?v=4.0.0"></script>
+<script src="js/modules/compat/relational-sync.js?v=13-settings-reload"></script>
+<script src="js/db.js?v=10.0.6-settings-reload"></script>
 <script src="js/audit.js?v=4.0.0"></script>
 <script src="js/gcode.js"></script>
 <script src="js/calculator.js?v=5.1.0"></script>
 <script src="js/orders.js?v=5.0.0"></script>
 <script src="js/production.js?v=2.0.0"></script>
-<script src="js/clients.js?v=actions-1.0"></script>
+<script src="js/clients.js?v=actions-1.6-winfix"></script>
 <script src="js/materials.js?v=actions-1.0"></script>
-<script src="js/printers.js?v=4.6.0"></script>
+<script src="js/printers.js?v=4.6.1-hours-fix"></script>
 <script src="js/packaging.js?v=2.0.0"></script>
 <script src="js/addons.js?v=2.1.0"></script>
 <script src="js/products.js?v=actions-1.0"></script>
 <script src="js/dashboard.js?v=3.2.0"></script>
-<script src="js/utils.js?v=5.1.0"></script>
+<script src="js/utils.js?v=10.0.6-settings-reloadence"></script>
 <script src="js/security-ui.js?v=1.0.2"></script>
 <script src="js/maintenance.js?v=2.0.0"></script>
 <script src="js/bambu.js?v=4.6.0"></script>
@@ -204,11 +204,11 @@
 <script src="js/etsy_config.js"></script>
 <script src="js/settings-ui.js?v=4.7.0"></script>
 <script src="js/database-settings.js?v=8.0.0"></script>
-<script src="js/bootstrap-pure.js?v=2.1.0"></script><script src="js/phase2-ui.js?v=1.1.0"></script>
-<script src="js/sprint5.js?v=5.1.0"></script>
-<script src="js/sprint6.js?v=6.0.0"></script>
-<script src="js/sprint7.js?v=7.0.0"></script>
-<script src="js/rest-modules.js?v=9.0.0"></script>
+<script src="js/modules/compat/bootstrap-pure.js?v=2.1.0"></script><script src="js/modules/compat/phase2-ui.js?v=1.1.0"></script>
+<script src="js/modules/compat/sprint5.js?v=5.1.0"></script>
+<script src="js/modules/compat/sprint6.js?v=6.0.0"></script>
+<script src="js/modules/compat/sprint7.js?v=7.0.0"></script>
+<script src="js/modules/compat/rest-modules.js?v=10.0.3-printer-refresh"></script>
 <script>
     RestModules.install();
     initDB();

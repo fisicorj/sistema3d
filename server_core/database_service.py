@@ -3,8 +3,9 @@ import sqlite3
 from pathlib import Path
 def validate_sqlite(path: Path) -> tuple[bool,str]:
     try:
-        con=sqlite3.connect(str(path)); result=con.execute("PRAGMA quick_check").fetchone(); con.close()
-        ok=bool(result and result[0]=="ok")
+        with sqlite3.connect(str(path)) as con:
+            result = con.execute("PRAGMA quick_check").fetchone()
+        ok = bool(result and result[0] == "ok")
         return ok, result[0] if result else "sem resposta"
     except Exception as exc:
         return False, str(exc)

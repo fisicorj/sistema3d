@@ -218,9 +218,41 @@ function bindClientConsignmentTab() {
     });
     if (!enabled || !fields) return;
     enabled.classList.add('form-check-input');
+
+    const syncContactFromClient = () => {
+        const name = document.getElementById('clientName')?.value.trim() || '';
+        const phone = formatPhone(document.getElementById('clientPhone')?.value || '');
+        const address = document.getElementById('clientAddress')?.value.trim() || '';
+        const number = document.getElementById('clientAddressNumber')?.value.trim() || '';
+        const complement = document.getElementById('clientAddressComplement')?.value.trim() || '';
+        const city = document.getElementById('clientCity')?.value.trim() || '';
+        const state = document.getElementById('clientState')?.value || '';
+        const cep = formatCep(document.getElementById('clientPostalCode')?.value || '');
+        const fullAddress = [[address, number].filter(Boolean).join(', '), complement, [city, state].filter(Boolean).join(' / '), cep].filter(Boolean).join(' — ');
+
+        const locationName = document.getElementById('clientConsignmentName');
+        const contact = document.getElementById('clientConsignmentContact');
+        const localPhone = document.getElementById('clientConsignmentPhone');
+        const localAddress = document.getElementById('clientConsignmentAddress');
+        if (locationName && !locationName.value.trim()) locationName.value = name;
+        if (contact) contact.value = name;
+        if (localPhone) localPhone.value = phone;
+        if (localAddress) localAddress.value = fullAddress;
+    };
+
+    ['clientName','clientPhone','clientPostalCode','clientAddress','clientAddressNumber','clientAddressComplement','clientCity','clientState'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', () => { if (enabled.checked) syncContactFromClient(); });
+        document.getElementById(id)?.addEventListener('change', () => { if (enabled.checked) syncContactFromClient(); });
+    });
+
     const refresh = () => {
         fields.classList.toggle('is-disabled', !enabled.checked);
         fields.querySelectorAll('input,select,textarea').forEach(el => { el.disabled = !enabled.checked; });
+        ['clientConsignmentContact','clientConsignmentPhone','clientConsignmentAddress'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.readOnly = true; el.disabled = !enabled.checked; }
+        });
+        if (enabled.checked) syncContactFromClient();
     };
     enabled.addEventListener('change', refresh);
     refresh();
@@ -299,11 +331,11 @@ function clientFormHTML(data={}, isEdit=false) {
           <div id="clientConsignmentFields" class="row g-3">
             <div class="col-md-7"><label class="form-label" for="clientConsignmentName">Nome do local *</label><input id="clientConsignmentName" class="form-control" value="${h(location.name||'')}" maxlength="200" placeholder="Loja Centro, Clínica, Papelaria..."></div>
             <div class="col-md-5"><label class="form-label" for="clientConsignmentCommission">Comissão padrão (%) *</label><div class="input-group"><input id="clientConsignmentCommission" class="form-control" type="number" min="0" max="100" step="0.01" value="${Number(location.commission_pct ?? 0)}"><span class="input-group-text">%</span></div></div>
-            <div class="col-md-6"><label class="form-label" for="clientConsignmentContact">Contato no local</label><input id="clientConsignmentContact" class="form-control" value="${h(location.contact||'')}" maxlength="160"></div>
-            <div class="col-md-6"><label class="form-label" for="clientConsignmentPhone">Telefone do local</label><input id="clientConsignmentPhone" class="form-control" value="${h(location.phone||'')}" maxlength="40"></div>
-            <div class="col-md-8"><label class="form-label" for="clientConsignmentAddress">Endereço do ponto</label><input id="clientConsignmentAddress" class="form-control" value="${h(location.address||'')}" maxlength="300" placeholder="Se vazio, será usado o endereço do cliente"></div>
+            <div class="col-md-6"><label class="form-label" for="clientConsignmentContact">Contato no local <span class="text-muted">(do cliente)</span></label><input id="clientConsignmentContact" readonly class="form-control" value="${h(location.contact||'')}" maxlength="160"></div>
+            <div class="col-md-6"><label class="form-label" for="clientConsignmentPhone">Telefone do local <span class="text-muted">(do cliente)</span></label><input id="clientConsignmentPhone" readonly class="form-control" value="${h(location.phone||'')}" maxlength="40"></div>
+            <div class="col-md-8"><label class="form-label" for="clientConsignmentAddress">Endereço do ponto <span class="text-muted">(do cliente)</span></label><input id="clientConsignmentAddress" readonly class="form-control" value="${h(location.address||'')}" maxlength="300" placeholder="Se vazio, será usado o endereço do cliente"></div>
             <div class="col-md-4"><label class="form-label" for="clientConsignmentDays">Prazo padrão</label><div class="input-group"><input id="clientConsignmentDays" class="form-control" type="number" min="1" max="3650" value="${Number(location.default_days || 30)}"><span class="input-group-text">dias</span></div></div>
-            <div class="col-12"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-2"></i>Esses dados serão usados automaticamente ao criar uma nova consignação.</div></div>
+            <div class="col-12"><div class="alert alert-info mb-0"><i class="bi bi-info-circle me-2"></i>Nome, telefone e endereço são copiados automaticamente do cadastro do cliente ao habilitar a consignação.</div></div>
           </div>
         </div>
       </div>
@@ -325,15 +357,23 @@ function validateClientForm(showAll=true) {
     if (name.length < 2) invalid('clientName', 'Informe um nome com pelo menos 2 caracteres.');
     if (![10,11].includes(phone.length)) invalid('clientPhone', 'Informe DDD e telefone com 10 ou 11 dígitos.');
     if (cep.length !== 8) invalid('clientPostalCode', 'Informe um CEP com 8 dígitos.');
-    if (!isValidEmail(email)) invalid('clientEmail', 'Informe um e-mail válido, como nome@dominio.com.');
+    if (email && !isValidEmail(email)) invalid('clientEmail', 'Informe um e-mail válido, como nome@dominio.com.');
     if (documentValue && !isValidDocument(documentValue)) invalid('clientDocument', 'CPF ou CNPJ inválido.');
     if (state && !BRAZIL_STATES.some(([uf]) => uf === state)) invalid('clientState', 'Selecione um estado válido.');
     return ok;
 }
+function findClientIdByField(field, value, currentId=0) {
+    if (!value || !['email','document'].includes(field)) return 0;
+    const stmt = db.prepare(`SELECT id FROM clients WHERE lower(trim(coalesce(${field},'')))=lower(trim(?)) AND id<>? ORDER BY CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END, id LIMIT 1`);
+    try {
+        stmt.bind([String(value).trim(), Number(currentId || 0)]);
+        return stmt.step() ? Number(stmt.get()[0] || 0) : 0;
+    } finally {
+        stmt.free();
+    }
+}
 function clientDuplicateExists(field,value,currentId=0) {
-    if (!value) return false;
-    const result=db.exec(`SELECT id FROM clients WHERE lower(${field})=lower(?) AND id<>? LIMIT 1`,[value,currentId]);
-    return result.length>0 && result[0].values.length>0;
+    return findClientIdByField(field,value,currentId) > 0;
 }
 async function saveClient(isEdit=false) {
     if (!validateClientForm(true)) { showToast('⚠️ Revise os campos destacados.'); return; }
@@ -348,9 +388,30 @@ async function saveClient(isEdit=false) {
     const city=document.getElementById('clientCity').value.trim();
     const state=document.getElementById('clientState').value;
     let id = isEdit ? Number(document.getElementById('clientEditId')?.value || 0) : 0;
+    let reusedExistingClient = false;
     if (isEdit && !id) { showToast('⚠️ Não foi possível identificar o cliente para edição.'); return; }
+
+    // E-mail e CPF/CNPJ são chaves naturais alternativas. Em uma inclusão,
+    // reutilizamos o registro encontrado por qualquer uma delas. Se cada chave
+    // apontar para clientes diferentes, interrompemos para não mesclar pessoas.
+    if (!isEdit) {
+        const idByEmail = email ? findClientIdByField('email', email, 0) : 0;
+        const idByDocument = documentValue ? findClientIdByField('document', documentValue, 0) : 0;
+        if (idByEmail && idByDocument && idByEmail !== idByDocument) {
+            setClientFieldError('clientEmail','O e-mail pertence a outro cliente.');
+            setClientFieldError('clientDocument','O CPF/CNPJ pertence a outro cliente.');
+            showToast('⚠️ E-mail e CPF/CNPJ pertencem a clientes diferentes. Revise os dados.');
+            return;
+        }
+        const existingId = idByEmail || idByDocument;
+        if (existingId) {
+            id = existingId;
+            isEdit = true;
+            reusedExistingClient = true;
+        }
+    }
     if (clientDuplicateExists('email',email,id)) { setClientFieldError('clientEmail','Este e-mail já pertence a outro cliente.'); showToast('⚠️ E-mail já cadastrado.'); return; }
-    if (clientDuplicateExists('document',documentValue,id)) { setClientFieldError('clientDocument','Este CPF/CNPJ já pertence a outro cliente.'); showToast('⚠️ CPF/CNPJ já cadastrado.'); return; }
+    if (documentValue && clientDuplicateExists('document',documentValue,id)) { setClientFieldError('clientDocument','Este CPF/CNPJ já pertence a outro cliente.'); showToast('⚠️ CPF/CNPJ já cadastrado.'); return; }
 
     const consignmentEnabled = Boolean(document.getElementById('clientConsignmentEnabled')?.checked);
     const locationId = Number(document.getElementById('clientConsignmentLocationId')?.value || 0);
@@ -365,27 +426,36 @@ async function saveClient(isEdit=false) {
 
     try {
         if (isEdit) {
-            db.run('UPDATE clients SET name=?,email=?,phone=?,address=?,address_number=?,address_complement=?,city=?,state=?,document=?,postal_code=? WHERE id=?',[name,email,phone,address,addressNumber,addressComplement,city,state,documentValue,postalCode,id]);
+            db.run('UPDATE clients SET name=?,email=?,phone=?,address=?,address_number=?,address_complement=?,city=?,state=?,document=?,postal_code=?,deleted_at=NULL WHERE id=?',[name,email || null,phone,address,addressNumber,addressComplement,city,state,documentValue || null,postalCode,id]);
         } else {
-            db.run('INSERT INTO clients (name,email,phone,address,address_number,address_complement,city,state,document,postal_code,total_spent,last_order) VALUES (?,?,?,?,?,?,?,?,?,?,0,NULL)',[name,email,phone,address,addressNumber,addressComplement,city,state,documentValue,postalCode]);
+            db.run('INSERT INTO clients (name,email,phone,address,address_number,address_complement,city,state,document,postal_code,total_spent,last_order) VALUES (?,?,?,?,?,?,?,?,?,?,0,NULL)',[name,email || null,phone,address,addressNumber,addressComplement,city,state,documentValue || null,postalCode]);
             id = Number(db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] || 0);
         }
         await persistDBNow();
-        if (window.RelationalSync) await window.RelationalSync.syncNow();
+
+        // Sincroniza a tabela de clientes uma única vez antes de criar o local.
+        // Isso funciona tanto no SQLite quanto em PostgreSQL/SQL Server e garante
+        // que a FK client_id já exista. O RestModules não deve repetir esta ação.
+        if (window.RelationalAPI && id) {
+            await window.RelationalAPI.syncResource('clients');
+        } else if (window.RelationalSync) {
+            const synced = await window.RelationalSync.syncNow();
+            if (!synced) throw new Error('Não foi possível sincronizar o cliente com o banco relacional');
+        }
 
         if (window.RelationalAPI && id) {
             const locationPayload = {
                 client_id:id, name:locationName || `${name} — consignação`,
-                contact:document.getElementById('clientConsignmentContact')?.value.trim() || null,
-                phone:document.getElementById('clientConsignmentPhone')?.value.trim() || null,
-                address:document.getElementById('clientConsignmentAddress')?.value.trim() || [address,addressNumber,addressComplement,city,state].filter(Boolean).join(', ') || null,
+                contact:name || null,
+                phone:phone || null,
+                address:[[address,addressNumber].filter(Boolean).join(', '),addressComplement,[city,state].filter(Boolean).join(' / '),postalCode].filter(Boolean).join(' — ') || null,
                 commission_pct:commission, default_days:defaultDays, active:consignmentEnabled,
                 created_at:new Date().toISOString()
             };
             if (locationId) await RelationalAPI.update('consignment_locations', locationId, locationPayload);
             else if (consignmentEnabled) await RelationalAPI.create('consignment_locations', locationPayload);
         }
-        showToast(isEdit ? '✅ Cliente atualizado!' : '✅ Cliente salvo!');
+        showToast(reusedExistingClient ? '✅ Cliente já existente atualizado!' : (isEdit ? '✅ Cliente atualizado!' : '✅ Cliente salvo!'));
         closeModal(); await loadClients();
     } catch (error) {
         console.error(error); showToast(`❌ Não foi possível salvar: ${error.message || error}`);

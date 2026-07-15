@@ -175,10 +175,10 @@ function updatePrinterCostPreview() {
 
 async function savePrinter(isEdit = false) {
     const name          = document.getElementById('printerName').value.trim();
-    const value         = parseFloat(document.getElementById('printerValue').value);
-    const lifetime      = parseFloat(document.getElementById('printerLifetime').value);
-    const wattage       = parseFloat(document.getElementById('printerWattage').value);
-    const speed         = parseFloat(document.getElementById('printerSpeed').value);
+    const value         = parseFloat(document.getElementById('printerValue').value) || 0;
+    const lifetime      = parseFloat(document.getElementById('printerLifetime').value) || 0;
+    const wattage       = parseFloat(document.getElementById('printerWattage').value) || 0;
+    const speed         = parseFloat(document.getElementById('printerSpeed').value) || 0;
     const bambuIp       = (document.getElementById('printerBambuIp')?.value || '').trim();
     const bambuSerial   = (document.getElementById('printerBambuSerial')?.value || '').trim();
     const bambuCode     = (document.getElementById('printerBambuAccessCode')?.value || '').trim();
@@ -203,8 +203,8 @@ async function savePrinter(isEdit = false) {
         }
         showToast('✅ Impressora atualizada!');
     } else {
-        db.run('INSERT INTO printers (name, value, lifetime_hours, wattage, speed_gph, bambu_ip, bambu_serial, bambu_access_code) VALUES (?,?,?,?,?,?,?,?)',
-            [name, value, lifetime, wattage, speed, bambuIp || null, bambuSerial || null, bambuCode || null]);
+        db.run('INSERT INTO printers (name, value, lifetime_hours, wattage, speed_gph, hours_used, bambu_ip, bambu_serial, bambu_access_code) VALUES (?,?,?,?,?,?,?,?,?)',
+            [name, value, lifetime, wattage, speed, 0, bambuIp || null, bambuSerial || null, bambuCode || null]);
         printerId = db.exec('SELECT last_insert_rowid()')[0].values[0][0];
         showToast('✅ Impressora salva!');
     }

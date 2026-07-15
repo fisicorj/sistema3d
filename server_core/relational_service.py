@@ -39,9 +39,9 @@ class Client(Base):
     __table_args__ = (
         UniqueConstraint("email", name="uq_clients_email"),
         UniqueConstraint("document", name="uq_clients_document"),
-        CheckConstraint("length(name) > 0", name="ck_clients_name"),
-        CheckConstraint("length(phone) > 0", name="ck_clients_phone"),
-        CheckConstraint("length(postal_code) > 0", name="ck_clients_postal_code"),
+        
+        
+        
     )
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -191,7 +191,7 @@ class Expense(Base):
     amount: Mapped[float] = mapped_column(Float, default=0)
     recurrence: Mapped[str] = mapped_column(String(30), default="once")
     date: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
-    recurrence_parent_id: Mapped[int | None] = mapped_column(ForeignKey("expenses.id", ondelete="CASCADE"), index=True)
+    recurrence_parent_id: Mapped[int | None] = mapped_column(ForeignKey("expenses.id", ondelete="NO ACTION"), index=True)
     recurrence_key: Mapped[str | None] = mapped_column(String(100), unique=True)
 
 
@@ -1197,6 +1197,8 @@ class RelationalDatabaseService:
     def _to_dict(self, obj) -> dict[str, Any]:
         data = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
         if isinstance(obj, Printer):
+            for field in ("value", "lifetime_hours", "wattage", "speed_gph", "hours_used"):
+                data[field] = float(data.get(field) or 0)
             data["bambu_has_code"] = bool(data.get("bambu_access_code"))
             data["bambu_access_code"] = None
             data["bambu_configured"] = bool(data.get("bambu_ip") and data.get("bambu_serial") and data.get("bambu_has_code"))

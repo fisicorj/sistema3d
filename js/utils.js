@@ -185,7 +185,7 @@ function setupEventListeners() {
         'settingEnergyPrice', 'settingHourlyRate', 'settingProfitMargin',
         'settingLossRate', 'settingPackagingCost',
         'settingMaintenancePerHour', 'settingFailRate', 'settingTaxRate',
-        'settingMonthlyGoal', 'settingAlertDays',
+        'settingMonthlyGoal', 'settingAlertDays', 'settingPurgeCostPerChange',
         'settingBrandName', 'settingQuoteValidityDays',
     ].forEach(id => {
         const el = document.getElementById(id);

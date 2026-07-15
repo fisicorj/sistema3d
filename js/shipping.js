@@ -267,7 +267,6 @@ function meStatus(text) {
     if (a) a.textContent = text;
     if (b) b.textContent = text;
 }
-const ME_LOCAL_KEY = 'sis3d_melhor_envio_config_fallback';
 
 async function loadMelhorEnvioConfig() {
     try {
@@ -281,16 +280,7 @@ async function loadMelhorEnvioConfig() {
         meSet('meAccessToken', 'value', '');
         meStatus(cfg.has_token ? 'Token configurado no servidor local.' : 'Token ainda não configurado.');
     } catch (e) {
-        try {
-            const cfg = JSON.parse(localStorage.getItem(ME_LOCAL_KEY) || '{}');
-            meSet('meEnabled', 'checked', !!cfg.enabled);
-            meSet('meEnvironment', 'value', cfg.environment || 'production');
-            meSet('meOriginCep', 'value', cfg.origin_cep || '');
-            meSet('meServices', 'value', cfg.services || '');
-            meSet('meUserAgent', 'value', cfg.user_agent || '');
-            meSet('meAccessToken', 'value', '');
-        } catch (_) {}
-        meStatus('Servidor local não respondeu. Abra pelo iniciar_windows.bat/server.py para salvar o token no backend.');
+        meStatus('Servidor local não respondeu. As configurações não são armazenadas no navegador.');
     }
 }
 
@@ -303,7 +293,6 @@ async function saveMelhorEnvioConfig() {
         user_agent: meField('meUserAgent')?.value || '',
         access_token: meField('meAccessToken')?.value || meField('meAccessToken2')?.value || ''
     };
-    try { localStorage.setItem(ME_LOCAL_KEY, JSON.stringify({...payload, access_token: payload.access_token ? '***' : ''})); } catch (_) {}
     try {
         const resp = await fetch('/api/melhor-envio/config', {
             method: 'POST',

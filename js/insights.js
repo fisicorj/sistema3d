@@ -70,10 +70,10 @@ function _radarSetConfig(key, val){
   try{db.run('INSERT OR REPLACE INTO radar_config(key,value) VALUES(?,?)',[key,typeof val==='string'?val:JSON.stringify(val)]);persistDB?.()}catch(_){}
 }
 
-// ── Pesos da pontuação — prioridade: banco > localStorage ─────────────────
+// ── Pesos da pontuação — persistidos exclusivamente no banco ───────────────
 function _weights(){
   try{const s=_radarGetConfig('score_weights');if(s)return{...RADAR_DEFAULT_WEIGHTS,...JSON.parse(s)}}catch(_){}
-  try{return{...RADAR_DEFAULT_WEIGHTS,...JSON.parse(localStorage.getItem('radarScoreWeights')||'{}')}}catch(_){return{...RADAR_DEFAULT_WEIGHTS}}
+  return {...RADAR_DEFAULT_WEIGHTS}
 }
 
 // ── Bootstrap da tela ───────────────────────────────────────────────────────
@@ -268,7 +268,6 @@ function saveRadarSettings(){
   const w={};
   Object.keys(RADAR_DEFAULT_WEIGHTS).forEach(k=>w[k]=Number(document.getElementById('radarWeight_'+k)?.value||RADAR_DEFAULT_WEIGHTS[k]));
   _radarSetConfig('score_weights',JSON.stringify(w));          // persiste no banco (backup-safe)
-  localStorage.setItem('radarScoreWeights',JSON.stringify(w)); // mantém compatibilidade
   showToast('✅ Critérios do Radar salvos');
   updateOpportunityScore();
 }

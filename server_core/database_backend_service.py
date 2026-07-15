@@ -1,17 +1,33 @@
 from __future__ import annotations
-import os, tempfile, threading, sqlite3
+import os, tempfile, threading, sqlite3, gc, time
 from pathlib import Path
-from platform_utils import safe_replace
+from platform_utils import safe_replace, IS_WINDOWS
 from server_core.database_service import validate_sqlite
 from server_core.relational_service import RelationalDatabaseService
 
 class DatabaseBackendService(RelationalDatabaseService):
-    """Camada relacional real. O SQLite local continua como espelho temporário
-    para os módulos ainda não migrados; PostgreSQL/SQL Server usam tabelas nativas."""
+    """Camada relacional persistente usada como fonte única de dados."""
+
+    def __init__(self, local_db: Path, config_file: Path, lock: threading.RLock):
+        super().__init__(local_db, config_file, lock)
+        self.cleanup_stale_temp_files()
+
+    def cleanup_stale_temp_files(self) -> int:
+        """Remove resíduos de gravações interrompidas sem tocar no banco ativo."""
+        self.local_db.parent.mkdir(parents=True, exist_ok=True)
+        removed = 0
+        for candidate in self.local_db.parent.glob("s3d_*.tmp"):
+            try:
+                candidate.unlink(missing_ok=True)
+                removed += 1
+            except OSError:
+                # Um arquivo ainda aberto será tentado novamente na próxima inicialização.
+                continue
+        return removed
     def save_snapshot(self, data: bytes):
         if not data.startswith(b"SQLite format 3"): raise ValueError("Arquivo SQLite inválido")
         self.local_db.parent.mkdir(parents=True, exist_ok=True)
-        fd, name = tempfile.mkstemp(prefix="s3d_", suffix=".sqlite.tmp", dir=str(self.local_db.parent)); os.close(fd)
+        fd, name = tempfile.mkstemp(prefix="s3d_", suffix=".tmp", dir=str(self.local_db.parent)); os.close(fd)
         tmp = Path(name); tmp.write_bytes(data)
         try:
             ok, detail = validate_sqlite(tmp)
@@ -20,16 +36,44 @@ class DatabaseBackendService(RelationalDatabaseService):
             # Após substituir o arquivo, descarta o pool para que as próximas operações
             # abram conexões frescas apontando para o novo arquivo (evita SQLITE_READONLY_DBMOVED).
             with self.lock:
-                # O frontend ainda envia um snapshot do sql.js para módulos legados.
-                # Consignações já são REST-first e não existem necessariamente nesse
-                # snapshot. Preservamos as tabelas relacionais antes da substituição,
-                # evitando que um salvamento posterior apague dados criados pela API.
-                self._preserve_server_tables(tmp)
-                safe_replace(tmp, self.local_db, retries=20, delay=0.1)
+                # No Windows, qualquer conexão ainda associada ao arquivo impede
+                # os.replace. Libere o engine antes da troca, não depois dela.
                 if self._engine is not None:
-                    self._engine.dispose(close=False)
+                    self._engine.dispose(close=True)
+                gc.collect()
+                time.sleep(0.03)
+
+                # O espelho volátil da interface pode não conter tabelas exclusivas
+                # do backend; elas são preservadas antes da substituição do arquivo.
+                self._preserve_server_tables(tmp)
+                if IS_WINDOWS:
+                    # Windows frequentemente mantém handles transitórios no arquivo,
+                    # impedindo os.replace mesmo após dispose(). Mantemos o arquivo
+                    # físico no mesmo caminho e copiamos o banco validado pela API
+                    # nativa de backup do SQLite. Assim não há rename/unlink do DB.
+                    with sqlite3.connect(str(tmp), timeout=30) as source, \
+                         sqlite3.connect(str(self.local_db), timeout=30) as target:
+                        source.execute("PRAGMA busy_timeout=30000")
+                        target.execute("PRAGMA busy_timeout=30000")
+                        source.backup(target, pages=256, sleep=0.05)
+                        target.commit()
+                    ok_after, detail_after = validate_sqlite(self.local_db)
+                    if not ok_after:
+                        raise ValueError(f"Falha ao validar banco salvo: {detail_after}")
+                else:
+                    safe_replace(tmp, self.local_db, retries=30, delay=0.08)
+                # Recria o engine imediatamente para as próximas chamadas REST.
+                self._engine = self._new_engine(self.load_config(False))
         finally:
-            tmp.unlink(missing_ok=True)
+            # A limpeza não pode mascarar o resultado da gravação. No Windows,
+            # handles antivírus podem permanecer ativos por alguns milissegundos.
+            for attempt in range(10):
+                try:
+                    tmp.unlink(missing_ok=True)
+                    break
+                except OSError:
+                    gc.collect()
+                    time.sleep(0.05 * (attempt + 1))
         return {"ok": True, "engine": self.load_config(False)["engine"], "saved_at_ms": int(self.local_db.stat().st_mtime * 1000), "mirror_only": self.load_config(False)["engine"] != "sqlite"}
 
 
@@ -43,8 +87,8 @@ class DatabaseBackendService(RelationalDatabaseService):
     def _preserve_server_tables(self, incoming_db: Path) -> None:
         """Copia tabelas REST-first do banco atual para o snapshot recebido.
 
-        O navegador mantém um SQLite parcial para compatibilidade. Tabelas que já
-        têm o backend como fonte oficial nunca podem ser removidas por esse arquivo.
+        A interface mantém um espelho SQLite apenas em memória. Tabelas que têm o
+        backend como fonte oficial nunca podem ser removidas por esse snapshot.
         A rotina funciona inclusive quando o snapshot antigo não contém o schema.
         """
         if not self.local_db.exists() or self.local_db.resolve() == incoming_db.resolve():

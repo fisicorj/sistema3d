@@ -1,16 +1,14 @@
 // ==================== BANCO DE DADOS ====================
 let db = null;
 let currentSettings = {};
-const DB_STORAGE_KEY = '3dprint_db'; // fallback legado no navegador
-const DB_STORAGE_TS_KEY = '3dprint_db_saved_at'; // horário da cópia mais recente no navegador
-const DB_API_URL = '/api/db';        // persistência real em arquivo SQLite local
-let sqliteServerPersistence = false;
+// O banco relacional do servidor é a única fonte persistente.
+// O sql.js abaixo existe apenas como espelho volátil para a interface legada.
+let sqliteServerPersistence = true;
 let persistTimer = null;
 let persistQueue = Promise.resolve(true);
 let persistSequence = 0;
 const DB_SCHEMA_VERSION = 5;
 let _dbChangedDuringInit = false;
-let _recoveredBrowserCopyNeedsSync = false;
 let runtimePlatform = { platform: 'unknown', is_windows: false, is_linux: false };
 let lastPersistedSnapshot = null;
 
@@ -61,67 +59,13 @@ async function initDB() {
     if (typeof loadQuotes === 'function') loadQuotes();
     updateDashboard(); updateStatsBar(); updateAlertSystem();
     setupEventListeners();
-    if (_dbChangedDuringInit || _recoveredBrowserCopyNeedsSync) {
-        _recoveredBrowserCopyNeedsSync = false;
-        await persistDBNow();
-    }
+    if (_dbChangedDuringInit) await persistDBNow();
 }
 
 async function loadSQLiteDatabase(SQL) {
-    // No Windows, o navegador pode ser fechado antes do último POST terminar.
-    // Por isso comparamos a data da cópia do navegador com a data do arquivo
-    // SQLite e carregamos a versão mais recente.
-    let serverBytes = null;
-    let serverMtime = 0;
-    let serverAvailable = false;
-
-    try {
-        const response = await fetch(DB_API_URL, { cache: 'no-store' });
-        serverAvailable = response.ok || response.status === 204 || response.status === 404;
-        if (response.ok) {
-            const buffer = await response.arrayBuffer();
-            if (buffer.byteLength > 0) {
-                serverBytes = new Uint8Array(buffer);
-                serverMtime = Number(response.headers.get('X-Sistema3D-MTime') || 0);
-                sqliteServerPersistence = true;
-            }
-        } else if (response.status === 204 || response.status === 404) {
-            sqliteServerPersistence = true;
-        }
-    } catch (e) {
-        console.warn('Servidor SQLite local indisponível. Usando fallback no navegador.', e);
-    }
-
-    const saved = localStorage.getItem(DB_STORAGE_KEY);
-    const browserMtime = Number(localStorage.getItem(DB_STORAGE_TS_KEY) || 0);
-    let browserBytes = null;
-    if (saved) {
-        try {
-            browserBytes = new Uint8Array(JSON.parse(saved));
-        } catch (e) {
-            console.warn('Banco do navegador corrompido; cópia ignorada.', e);
-        }
-    }
-
-    // Se o navegador contém uma cópia mais nova, ela vence. Isso recupera
-    // alterações feitas imediatamente antes de fechar a janela no Windows.
-    if (browserBytes && (!serverBytes || browserMtime > serverMtime + 500)) {
-        console.info('Cópia mais recente recuperada do navegador e será sincronizada com o SQLite.');
-        const recovered = new SQL.Database(browserBytes);
-        _recoveredBrowserCopyNeedsSync = serverAvailable;
-        return recovered;
-    }
-
-    if (serverBytes) {
-        console.info('Banco SQLite carregado do arquivo local.');
-        return new SQL.Database(serverBytes);
-    }
-
-    if (browserBytes) {
-        console.info('Banco carregado da cópia de segurança do navegador.');
-        return new SQL.Database(browserBytes);
-    }
-
+    // Não carrega nem grava snapshots SQLite pelo navegador.
+    // RelationalSync.bootstrap() preencherá este banco em memória usando a API.
+    updatePersistenceStatus('Banco relacional conectado', true);
     return new SQL.Database();
 }
 
@@ -129,99 +73,30 @@ function updatePersistenceStatus(text, ok = true) {
     const el = document.getElementById('sqlitePersistenceStatus');
     if (!el) return;
     el.textContent = text;
-    el.style.color = ok ? 'var(--success)' : 'var(--warning)';
+    el.style.color = ok ? 'var(--bs-success)' : 'var(--bs-warning)';
 }
 
-async function writeDBToSQLiteFile(data) {
-    try {
-        const response = await fetch(DB_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/octet-stream',
-                'X-Sistema3D-Save': String(++persistSequence)
-            },
-            body: data,
-            cache: 'no-store'
-        });
-        let payload = null;
-        try { payload = await response.json(); } catch (_) { payload = null; }
-        if (response.ok && (!payload || payload.ok !== false)) {
-            sqliteServerPersistence = true;
-            const savedAt = Number(payload && payload.saved_at_ms ? payload.saved_at_ms : Date.now());
-            localStorage.setItem(DB_STORAGE_TS_KEY, String(savedAt));
-            lastPersistedSnapshot = data;
-            updatePersistenceStatus('Banco local sincronizado', true);
-            if (window.RelationalSync) await window.RelationalSync.syncNow();
-            return true;
-        }
-        console.error('Erro ao salvar SQLite local:', response.status, payload || response.statusText);
-    } catch (e) {
-        console.warn('Servidor SQLite local indisponível; dados salvos apenas no navegador.', e);
-    }
-    updatePersistenceStatus('Falha ao gravar SQLite: dados preservados no navegador', false);
-    return false;
+async function writeDBToSQLiteFile(_data) {
+    // Compatibilidade com módulos legados: a persistência real já ocorre
+    // individualmente pelos endpoints /api/relational/*.
+    updatePersistenceStatus('Banco relacional sincronizado', true);
+    return true;
 }
 
-function enqueueSQLiteSave(data) {
-    // Serializa as gravações. No Windows, duas requisições POST simultâneas
-    // podem manter o arquivo aberto e impedir a substituição do SQLite.
-    persistQueue = persistQueue
-        .catch(() => false)
-        .then(() => writeDBToSQLiteFile(data));
-    return persistQueue;
+function enqueueSQLiteSave(_data) {
+    return Promise.resolve(true);
 }
 
-function persistBrowserFallback(data, savedAt = Date.now()) {
-    try {
-        localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(Array.from(data)));
-        localStorage.setItem(DB_STORAGE_TS_KEY, String(savedAt));
-        lastPersistedSnapshot = data;
-    } catch (e) {
-        console.warn('Não foi possível salvar fallback no navegador:', e);
-    }
-}
-
-function persistDB(delay = 250) {
-    if (!db) return;
-    clearTimeout(persistTimer);
-    persistTimer = setTimeout(async () => {
-        const data = db.export();
-        persistBrowserFallback(data);
-        await enqueueSQLiteSave(data);
-    }, delay);
+function persistDB(_delay = 250) {
+    // Intencionalmente vazio. O wrapper REST envia cada mutação ao servidor.
 }
 
 async function persistDBNow() {
-    if (!db) return false;
-    clearTimeout(persistTimer);
-    const data = db.export();
-    persistBrowserFallback(data);
-    return await enqueueSQLiteSave(data);
+    if (!window.RelationalAPI) return false;
+    return window.RelationalAPI.flushDirty();
 }
 
-// Persistência multiplataforma no ciclo de vida da página.
-// localStorage é síncrono e garante a recuperação; visibilitychange antecipa o POST
-// normal antes que Windows/Linux encerrem a aba. Não dependemos de sendBeacon.
-function snapshotBrowserDatabase() {
-    if (!db) return;
-    try {
-        persistBrowserFallback(db.export());
-    } catch (e) {
-        console.warn('Falha ao criar cópia de segurança no navegador:', e);
-    }
-}
-
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden' && db) {
-        snapshotBrowserDatabase();
-        // A requisição pode concluir se o navegador mantiver a página viva; se não,
-        // a cópia do navegador será reconciliada na próxima abertura.
-        persistDBNow().catch(() => false);
-    }
-});
-
-window.addEventListener('pagehide', snapshotBrowserDatabase);
-window.addEventListener('beforeunload', snapshotBrowserDatabase);
+// A persistência ocorre exclusivamente no servidor.
 
 function createTables() {
     db.run(`CREATE TABLE IF NOT EXISTS orders (
@@ -235,10 +110,13 @@ function createTables() {
         address TEXT, city TEXT, state TEXT, total_spent REAL, last_order DATE)`);
     db.run(`CREATE TABLE IF NOT EXISTS materials (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, color TEXT,
-        spool_weight REAL, cost REAL, stock REAL, min_alert REAL)`);
+        spool_weight REAL, cost REAL, stock REAL, min_alert REAL,
+        energy_factor REAL NOT NULL DEFAULT 1.0)`);
     db.run(`CREATE TABLE IF NOT EXISTS printers (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, value REAL,
-        lifetime_hours REAL, wattage REAL, speed_gph REAL)`);
+        lifetime_hours REAL, wattage REAL, speed_gph REAL,
+        hours_used REAL NOT NULL DEFAULT 0,
+        bambu_ip TEXT, bambu_serial TEXT, bambu_access_code TEXT)`);
     db.run(`CREATE TABLE IF NOT EXISTS shipping_rates (
         id INTEGER PRIMARY KEY AUTOINCREMENT, region TEXT,
         min_weight REAL, max_weight REAL, cost REAL)`);
@@ -333,11 +211,13 @@ function createTables() {
     ensureColumn('orders', 'printing_started_at', 'TEXT');
     ensureColumn('orders', 'paid_amount', 'REAL');
 
-    ensureColumn('printers', 'hours_used', 'REAL');
+    ensureColumn('printers', 'hours_used', 'REAL NOT NULL DEFAULT 0');
+    db.run('UPDATE printers SET hours_used=0 WHERE hours_used IS NULL');
     ensureColumn('printers', 'bambu_ip', 'TEXT');
     ensureColumn('printers', 'bambu_serial', 'TEXT');
     ensureColumn('printers', 'bambu_access_code', 'TEXT');
-    ensureColumn('materials', 'energy_factor', 'REAL DEFAULT 1.0');
+    ensureColumn('materials', 'energy_factor', 'REAL NOT NULL DEFAULT 1.0');
+    db.run('UPDATE materials SET energy_factor=1.0 WHERE energy_factor IS NULL');
     ensureColumn('clients', 'document', 'TEXT');
     ensureColumn('clients', 'postal_code', 'TEXT');
     ensureColumn('clients', 'address_number', 'TEXT');
@@ -557,13 +437,13 @@ function migrateSettings() {
 function initDefaultData() {
     const hasPrinters = db.exec('SELECT COUNT(*) FROM printers');
     if (hasPrinters.length === 0 || hasPrinters[0].values[0][0] === 0) {
-        db.run(`INSERT INTO printers (name,value,lifetime_hours,wattage,speed_gph) VALUES
-            ('Bambu Lab A1 + AMS Lite',5000,5000,150,25),('Bambu Lab A1 Mini',2200,5000,120,20),
-            ('Bambu Lab X1C',8000,7000,250,30),('Ender 3',1500,4000,150,8)`);
-        db.run(`INSERT INTO materials (name,color,spool_weight,cost,stock,min_alert) VALUES
-            ('PLA','Branco',1000,90,750,200),('PLA','Preto',1000,95,320,200),
-            ('PETG','Transparente',1000,120,1000,250),('TPU','Preto',500,110,180,100),
-            ('ABS','Cinza',1000,85,450,200),('PLA','Azul',1000,92,0,200)`);
+        db.run(`INSERT INTO printers (name,value,lifetime_hours,wattage,speed_gph,hours_used) VALUES
+            ('Bambu Lab A1 + AMS Lite',5000,5000,150,25,0),('Bambu Lab A1 Mini',2200,5000,120,20,0),
+            ('Bambu Lab X1C',8000,7000,250,30,0),('Ender 3',1500,4000,150,8,0)`);
+        db.run(`INSERT INTO materials (name,color,spool_weight,cost,stock,min_alert,energy_factor) VALUES
+            ('PLA','Branco',1000,90,750,200,1.0),('PLA','Preto',1000,95,320,200,1.0),
+            ('PETG','Transparente',1000,120,1000,250,1.0),('TPU','Preto',500,110,180,100,1.0),
+            ('ABS','Cinza',1000,85,450,200,1.0),('PLA','Azul',1000,92,0,200,1.0)`);
         // Não chama persistDB() aqui — migrateSettings() já o faz durante a mesma inicialização.
     }
 }
@@ -598,23 +478,75 @@ function loadSettings() {
     if (typeof loadMlConfig === 'function') loadMlConfig();
 }
 
-function saveSettings() {
-    const map = { settingEnergyPrice:'energyPrice', settingHourlyRate:'hourlyRate', settingProfitMargin:'profitMargin', settingLossRate:'lossRate', settingMaintenancePerHour:'maintenancePerHour', settingFailRate:'failRate', settingPackagingCost:'packagingCost', settingTaxRate:'taxRate', settingMonthlyGoal:'monthlyGoal', settingAlertDays:'alertDays', settingPurgeCostPerChange:'purgeCostPerChange', settingBrandName:'brandName', settingQuoteValidityDays:'quoteValidityDays' };
+let _settingsSaveInFlight = Promise.resolve(true);
+
+function collectSettingsFromForm() {
+    const map = {
+        settingEnergyPrice:'energyPrice',
+        settingHourlyRate:'hourlyRate',
+        settingProfitMargin:'profitMargin',
+        settingLossRate:'lossRate',
+        settingMaintenancePerHour:'maintenancePerHour',
+        settingFailRate:'failRate',
+        settingPackagingCost:'packagingCost',
+        settingTaxRate:'taxRate',
+        settingMonthlyGoal:'monthlyGoal',
+        settingAlertDays:'alertDays',
+        settingPurgeCostPerChange:'purgeCostPerChange',
+        settingBrandName:'brandName',
+        settingQuoteValidityDays:'quoteValidityDays'
+    };
+    const values = {};
     for (const [id, key] of Object.entries(map)) {
         const el = document.getElementById(id);
-        if (!el) continue;
-        db.run('INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)', [key, el.value ?? '']);
-        currentSettings[key] = el.value ?? '';
+        if (el) values[key] = String(el.value ?? '');
     }
-    persistDB(0);
+    return values;
+}
+
+async function persistSettingsToServer(_values) {
+    if (!window.RelationalAPI) throw new Error('API relacional indisponível');
+    // As alterações já foram aplicadas ao espelho e marcadas como pendentes
+    // pelo rastreador do RelationalAPI. A sincronização abaixo persiste a tabela
+    // settings no banco ativo (SQLite, PostgreSQL ou SQL Server).
+    window.RelationalAPI.markDirty('settings');
+    const ok = await window.RelationalAPI.flushDirty();
+    if (!ok) throw new Error('A sincronização das configurações não foi confirmada');
+    return true;
+}
+
+function saveSettings() {
+    const values = collectSettingsFromForm();
+    for (const [key, value] of Object.entries(values)) {
+        db.run('INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)', [key, value]);
+        currentSettings[key] = value;
+    }
     updatePrinterHourInfo();
     updatePriceCalculation();
+    updatePersistenceStatus('Salvando configurações...', true);
+
+    // Serializa os salvamentos para impedir que eventos input/change concorrentes
+    // gravem uma versão antiga por último.
+    _settingsSaveInFlight = _settingsSaveInFlight
+        .catch(() => true)
+        .then(() => persistSettingsToServer(values))
+        .then(() => {
+            updatePersistenceStatus('Configurações salvas no banco', true);
+            return true;
+        })
+        .catch(error => {
+            console.error('Erro ao salvar configurações:', error);
+            updatePersistenceStatus('Falha ao salvar configurações', false);
+            return false;
+        });
+    return _settingsSaveInFlight;
 }
 
 async function saveSettingsNow() {
-    saveSettings();
-    const ok = await persistDBNow();
-    showToast(ok ? '✅ Configurações salvas no SQLite!' : '⚠️ Salvo no navegador. Abra pelo iniciar.sh/server.py para gravar no SQLite.');
+    clearTimeout(window._settingsDebounceTimer);
+    const ok = await saveSettings();
+    showToast(ok ? 'Configurações salvas e confirmadas no banco.' : 'Não foi possível confirmar o salvamento das configurações.', ok ? 'success' : 'error');
+    return ok;
 }
 
 function getFirstPrinterForInfo() { const printerId=document.getElementById('calcPrinter')?.value; if(printerId) return printerId; const r=db?.exec('SELECT id FROM printers ORDER BY id LIMIT 1'); return r?.[0]?.values?.[0]?.[0] || null; }

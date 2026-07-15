@@ -1,10 +1,14 @@
+## Correção v10.0.5 — persistência das configurações
+
+As configurações das telas **Geral**, **Preços e custos** e **Impressora** são persistidas na tabela relacional `settings`, no formato chave/valor. Essa tabela é criada em SQLite, PostgreSQL e SQL Server. O botão **Salvar alterações** e o salvamento automático agora usam diretamente a API relacional, sem depender do cache em `sql.js`.
+
 # 3D Print Pro
 
 > ERP local e multiplataforma para gestão de negócios de impressão 3D.
 
 O **3D Print Pro** é um sistema de gestão criado para makers, prestadores de serviço, pequenos estúdios e microempreendedores que trabalham com impressão 3D. Ele reúne precificação, pedidos, produção, estoque, clientes, consignações, finanças, manutenção, integrações e pesquisa de oportunidades em uma única aplicação.
 
-A aplicação roda localmente no computador do usuário, utiliza uma interface web responsiva e pode operar com **SQLite, PostgreSQL ou Microsoft SQL Server**. O frontend é construído com **Bootstrap 5.3**, Bootstrap Icons, JavaScript e `sql.js`; o backend utiliza Python, SQLAlchemy e uma API REST.
+A aplicação roda localmente no computador do usuário, utiliza uma interface web responsiva e pode operar com **SQLite, PostgreSQL ou Microsoft SQL Server**. O frontend é construído com **Bootstrap 5.3**, Bootstrap Icons e JavaScript; o backend utiliza Python, SQLAlchemy e uma API REST. O `sql.js` é mantido apenas como espelho volátil de compatibilidade da interface, sem persistência no navegador.
 
 ---
 
@@ -131,7 +135,7 @@ flowchart LR
     U[Usuário] --> B[Browser / PWA]
     B --> UI[Bootstrap 5.3 + JavaScript]
     UI --> API[API REST Python]
-    UI --> CACHE[sql.js / cache local]
+    UI --> MIRROR[sql.js / espelho volátil]
     API --> ORM[SQLAlchemy]
     ORM --> S[(SQLite)]
     ORM --> P[(PostgreSQL)]
@@ -152,7 +156,12 @@ flowchart LR
 - a lógica de cada módulo fica em `js/`;
 - Bootstrap e Bootstrap Icons são servidos localmente em `vendor/`;
 - `css/sistema3d.css` concentra os ajustes visuais específicos;
-- `sql.js` fornece cache e compatibilidade local para partes legadas/transicionais.
+- `sql.js` fornece somente um espelho temporário em memória para módulos de compatibilidade; nenhum dado operacional é gravado no `localStorage`.
+
+
+### Estrutura dos módulos de compatibilidade
+
+Os módulos transitórios foram agrupados em `js/modules/compat/`. Essa organização separa claramente a camada de compatibilidade dos módulos funcionais principais e facilita sua remoção gradual sem misturar arquivos históricos com o código corrente.
 
 #### Backend
 
@@ -164,7 +173,7 @@ flowchart LR
 
 #### Persistência
 
-O banco selecionado é a fonte relacional principal. O SQLite local também é utilizado como banco padrão e pode atuar como espelho/cache durante fluxos de compatibilidade.
+O banco selecionado é a única fonte persistente dos dados operacionais. O SQLite é o padrão local; PostgreSQL e SQL Server podem ser configurados. O navegador armazena apenas preferências visuais, nunca o banco, tokens ou configurações sensíveis.
 
 ---
 
@@ -1635,7 +1644,7 @@ O projeto já possui uma base funcional extensa. Evoluções futuras podem inclu
 
 ## Limitações conhecidas
 
-- o frontend ainda mantém componentes de compatibilidade com `sql.js`;
+- o frontend mantém `sql.js` somente como espelho volátil de compatibilidade; a persistência ocorre exclusivamente pela API;
 - PWA offline não substitui o backend;
 - OAuth do Mercado Livre pode exigir URL pública HTTPS;
 - API Etsy depende de aprovação da chave;
